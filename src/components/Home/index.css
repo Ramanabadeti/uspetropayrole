@@ -1,0 +1,182 @@
+/* .time-logs{
+    display: flex;
+}
+.header{
+    display: flex;
+}
+
+.row{
+    margin-right: 12px;
+}
+
+.header-row{
+    margin-right: 12px;
+    font-weight: bolder;
+}
+ */
+
+
+ /* index.css */
+
+/* index.css */
+
+/* Global styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #f0f4f8, #e8eff5);
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Header */
+  h1, h3, h4 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #2c3e50;
+  }
+  
+  h1 {
+    font-size: 32px;
+  }
+  
+  h3 {
+    font-size: 22px;
+  }
+  
+  h4 {
+    font-size: 18px;
+    color: #555;
+  }
+  
+  /* Buttons */
+  button {
+    padding: 10px 24px;
+    margin: 10px auto;
+    display: block;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: background 0.3s ease;
+  }
+  
+  button:hover {
+    background-color: #2c80b4;
+  }
+  
+  .employee-logs {
+    max-width: 1000px;
+    margin: 40px auto;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    overflow-x: auto;
+    padding: 20px;
+  }
+  
+  /* Table headers */
+  .header {
+    display: flex;
+    background-color: #2c3e50;
+    color: white;
+    font-weight: bold;
+    padding: 14px 10px;
+    border-radius: 10px 10px 0 0;
+  }
+  
+  /* Individual header cell */
+  .header-row {
+    flex: 1;
+    text-align: center;
+  }
+  
+  /* Scrollable time logs */
+  .time-logs {
+    display: flex;
+    flex-direction: row;
+    background-color: #f9f9f9;
+    border-radius: 0 0 10px 10px;
+  }
+  
+  /* Individual column */
+  .row {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border-right: 1px solid #e0e0e0;
+  }
+  
+  /* Cell styles */
+  .row div {
+    padding: 10px 0;
+    text-align: center;
+    border-bottom: 1px solid #ececec;
+    color: #333;
+  }
+  
+  /* Remove border from last column */
+  .row:last-child {
+    border-right: none;
+  }
+  
+  /* Responsive layout */
+  @media (max-width: 768px) {
+    .header, .time-logs {
+      display: block;
+    }
+  
+    .header-row, .row {
+      text-align: left;
+      padding: 8px 12px;
+    }
+  
+    .row div {
+      text-align: left;
+      padding-left: 10px;
+    }
+  }
+
+  /* Navigation Bar Styling */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 10px 20px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  /* Title centered */
+  .nav-title {
+    flex-grow: 1;
+    text-align: center;
+    margin: 0;
+    font-size: 28px;
+    color: #2c3e50;
+  }
+  
+  /* Back button aligned left */
+  .back-btn {
+    position: absolute;
+    left: 20px;
+    padding: 6px 16px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .back-btn:hover {
+    background-color: #2c80b4;
+  }
+  
+  

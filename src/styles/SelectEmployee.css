@@ -1,0 +1,49 @@
+/* Center the whole card in the page */
+.select-employee-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f4f6f9;
+  }
+  
+  /* Card styling */
+  .select-card {
+    background-color: white;
+    padding: 40px 30px;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    width: 300px;
+  }
+  
+  /* Headings */
+  .select-card h2 {
+    margin-bottom: 10px;
+    font-size: 24px;
+    color: #2c3e50;
+  }
+  
+  .select-card h6 {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #7f8c8d;
+  }
+  
+  /* Dropdown */
+  .employee-dropdown {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    transition: border 0.3s ease;
+  }
+  
+  .employee-dropdown:focus {
+    outline: none;
+    border-color: #3498db;
+    background-color: white;
+  }
+  
