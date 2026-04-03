@@ -1,28 +1,25 @@
-import { Route, BrowserRouter, Routes } from 'react-router-dom';
-import { useState } from 'react';
-import Login from './components/Login';
-import Admin from './components/Admin';
-import Home from './components/Home'; // Will become employee-specific
-import SelectEmployee from './components/SelectEmployee';
-import ShardContext from './Context';
-import './App.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import SelectEmployee from './components/SelectEmployee'; // or EmployeeHomeWrapper if you're skipping selection
 import EmployeeHomeWrapper from './components/EmployeeHomeWrapper';
+import Admin from './components/Admin';
+import './App.css';
+import Login from './components/Login';
+import PunchWayShowcase from './components/PunchWayShowcase';
 
 function App() {
-  const [empDetails, setEmpDetails] = useState([]);
-
   return (
     <div className="App">
-      <ShardContext.Provider value={{ empDetails, setEmpDetails }}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/" element={<SelectEmployee />} />
-            <Route path="/employee/:name" element={<EmployeeHomeWrapper />} />
-          </Routes>
-        </BrowserRouter>
-      </ShardContext.Provider>
+      <BrowserRouter>
+        <Routes>
+          {/* <Route path="/" element={<SelectEmployee />} /> */}
+          <Route path = '/' element={<SelectEmployee/>}/>
+          <Route path = '/admin' element={<Admin/>}/>
+          <Route path='/login' element={<Login/>} />
+          <Route path="/employee/:name" element={<EmployeeHomeWrapper />} />
+          <Route path='/showcase' element={<PunchWayShowcase />} />
+
+        </Routes>
+      </BrowserRouter>
     </div>
   );
 }

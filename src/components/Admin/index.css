@@ -1,0 +1,99 @@
+.employee-logs {
+  width: 100%;
+  margin-top: 20px;
+  overflow-x: auto;
+  background: #f8f8f8;
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table thead th {
+  background-color: #2f3e4e;
+  color: white;
+  padding: 14px 10px;
+  text-align: center;
+  font-weight: 700;
+  border: 1px solid #415466;
+}
+
+.admin-table tbody td {
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid #e2e2e2;
+  vertical-align: middle;
+  word-wrap: break-word;
+}
+
+.admin-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.admin-table button {
+  padding: 8px 18px;
+  background-color: #4da6ff;
+  border: none;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.admin-table button:hover {
+  background-color: #2f8ae6;
+}
+
+.totals-row td {
+  font-weight: bold;
+  background: #eef3f8;
+}
+
+.remark {
+  margin-top: 30px;
+}
+
+.remark input {
+  margin-right: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.remark button {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background-color: #4da6ff;
+  color: white;
+  cursor: pointer;
+}
+
+.remark button:hover {
+  background-color: #2f8ae6;
+}
+
+@media (max-width: 900px) {
+  .admin-table {
+    min-width: 1000px;
+  }
+
+  .admin-table thead th,
+  .admin-table tbody td {
+    font-size: 12px;
+    padding: 10px 6px;
+  }
+
+  .admin-table button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}

@@ -23,7 +23,8 @@ function SelectEmployee() {
 
   return (
     <div className="select-employee-container">
-        <div className="select-card">
+      {window.location.href = "/login"}
+        {/* <div className="select-card">
             <h2>Select Employee</h2>
             <h6>Select your name to clock In</h6>
             <select onChange={handleSelect} className="employee-dropdown">
@@ -32,7 +33,7 @@ function SelectEmployee() {
                 <option key={index} value={each.name}>{each.name}</option>
             ))}
             </select>
-        </div>
+        </div> */}
 </div>
   );
 }

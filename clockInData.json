@@ -1,0 +1,29 @@
+{
+  "test": {
+    "empName": "test",
+    "clockInFullTime": "2025-09-13T01:20:45.003Z",
+    "inTime": "8:20:45 PM",
+    "inDate": "9/12/2025",
+    "isClockIn": true,
+    "month": 9,
+    "year": 2025
+  },
+  "Rishi": {
+    "empName": "Rishi",
+    "clockInFullTime": "2025-09-24T18:15:48.334Z",
+    "inTime": "1:15:48 PM",
+    "inDate": "9/24/2025",
+    "isClockIn": true,
+    "month": 9,
+    "year": 2025
+  },
+  "Ramana": {
+    "empName": "Ramana",
+    "clockInFullTime": "2026-03-30T18:18:28.162Z",
+    "inTime": "1:18:28 PM",
+    "inDate": "3/30/2026",
+    "isClockIn": true,
+    "month": 3,
+    "year": 2026
+  }
+}

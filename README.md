@@ -1,70 +1,197 @@
-# Getting Started with Create React App
+PUNCHWAY – EMPLOYEE TIME TRACKING & PAYROLL SYSTEM
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+PunchWay is a fullstack employee attendance and payroll management
+system built for small businesses such as gas stations, shops, and
+service companies.
 
-## Available Scripts
+It allows employees to clock in and clock out easily, while
+administrators can review work hours, edit incorrect entries, and
+calculate payroll accurately.
 
-In the project directory, you can run:
+The system works offline because it stores data locally using SQLite
+database.
 
-### `npm start`
+------------------------------------------------------------------------
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+PROJECT PURPOSE
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Many small businesses track attendance manually or using Excel files,
+which can lead to:
 
-### `npm test`
+• incorrect pay calculations • lost or overwritten data • difficulty
+editing past records • dependency on internet tools • manual errors
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+PunchWay solves these problems by providing a simple, reliable, and
+offline-capable payroll system.
 
-### `npm run build`
+------------------------------------------------------------------------
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+MAIN FEATURES
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+EMPLOYEE FEATURES
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Employees can:
 
-### `npm run eject`
+• login securely • clock in • clock out • automatically record work date
+and time • refresh page without losing session • see their work logs •
+view total hours worked • system works even without internet
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+------------------------------------------------------------------------
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+ADMIN FEATURES
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Admin can:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+• search employee logs by month and year • see total hours worked • see
+decimal hours for accurate payroll calculation • manually enter hourly
+pay rate • edit incorrect clock-in or clock-out times • automatically
+recalculate pay after edit • see corrected entries • add notes and
+payment remarks • track paid amount and pending amount • generate
+payroll summary PDF • send payroll email • view historical attendance
+records
 
-## Learn More
+------------------------------------------------------------------------
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+SYSTEM FEATURES
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+• local SQLite database storage • offline-first design • automatic hour
+calculation • automatic pay calculation • admin edit tracking •
+historical Excel import supported • responsive UI • clean aligned table
+layout • modular backend API structure
 
-### Code Splitting
+------------------------------------------------------------------------
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+TECHNOLOGY STACK
 
-### Analyzing the Bundle Size
+FRONTEND React.js HTML CSS JavaScript
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+BACKEND Node.js Express.js
 
-### Making a Progressive Web App
+DATABASE SQLite
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+LIBRARIES USED sqlite3 xlsx html2canvas jspdf cors body-parser
 
-### Advanced Configuration
+------------------------------------------------------------------------
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+APPLICATION ARCHITECTURE
 
-### Deployment
+Frontend (React) | | API Requests | Backend (Node + Express) | | SQL
+Queries | SQLite Database (Local Storage)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+------------------------------------------------------------------------
 
-### `npm run build` fails to minify
+PROJECT FOLDER STRUCTURE
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+PunchWay
+
+client src components Login Home Admin Header
+
+server server.js db.js initDb.js importEmployees.js
+importHistoricalEntries.js
+
+payroll.db
+
+README.txt
+
+------------------------------------------------------------------------
+
+HOW THE SYSTEM WORKS
+
+EMPLOYEE WORKFLOW
+
+1.  employee logs in
+2.  employee clicks Clock In
+3.  system stores start time
+4.  employee works shift
+5.  employee clicks Clock Out
+6.  system calculates: total hours decimal hours daily pay
+7.  record stored in database
+8.  employee can see monthly logs
+
+------------------------------------------------------------------------
+
+ADMIN WORKFLOW
+
+1.  admin logs in
+2.  selects employee
+3.  selects month and year
+4.  enters hourly rate
+5.  clicks search
+6.  system displays: work dates clock in time clock out time total hours
+    decimal hours pay per day
+7.  admin can edit incorrect time
+8.  system recalculates hours automatically
+9.  admin can add notes or payment details
+10. admin can generate PDF report
+11. admin can send email
+
+------------------------------------------------------------------------
+
+DATABASE STRUCTURE
+
+DATABASE FILE payroll.db
+
+TABLE: employees id name password
+
+TABLE: active_sessions emp_name clock_in_time in_time in_date month year
+
+TABLE: time_entries id emp_name clock_in_date clock_in_time
+clock_out_date clock_out_time total_hours decimal_hours hourly_rate
+day_pay month year status updated_at
+
+status values: normal corrected imported
+
+TABLE: admin_edits id time_entry_id old_clock_in_time new_clock_in_time
+edit_reason edited_by edited_at
+
+------------------------------------------------------------------------
+
+API ENDPOINTS
+
+POST /login POST /clock-in POST /clock-data GET /clock-in/{employeeName}
+POST /api/employee-logs GET /api/employees GET /api/time-entries PUT
+/api/time-entry/{id} POST /api/save-admin-note POST /api/admin-note-list
+GET /api/emails
+
+------------------------------------------------------------------------
+
+INSTALLATION STEPS
+
+1.  clone project git clone repository_url
+
+2.  install frontend cd client npm install
+
+3.  install backend cd server npm install
+
+4.  create database node initDb.js
+
+5.  import employees node importEmployees.js
+
+6.  import historical Excel data node importHistoricalEntries.js
+
+7.  start backend node server.js
+
+8.  start frontend cd client npm start
+
+frontend runs on http://localhost:3000 backend runs on
+http://localhost:5050
+
+------------------------------------------------------------------------
+
+OFFLINE CAPABILITY
+
+PunchWay works without internet connection because:
+
+• SQLite database runs locally • all API requests run on local server •
+data stored on local machine • no cloud dependency
+
+Employees can clock in and clock out even if internet stops working.
+
+------------------------------------------------------------------------
+
+AUTHOR
+
+Fullstack payroll system demonstrating:
+
+React frontend Node backend REST API design SQLite database real
+business logic
