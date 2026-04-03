@@ -235,7 +235,7 @@ function PunchWayShowcase() {
         <div className="screens-grid">
           {screens.map((screen) => (
             <div key={screen.title} className="screen-card">
-              <img src={screen.image} className="screen-img" />
+             <img src={screen.image} className="screen-img" alt={screen.title} />
               <h3>{screen.title}</h3>
               <p>{screen.text}</p>
             </div>
