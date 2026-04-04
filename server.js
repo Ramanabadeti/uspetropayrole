@@ -9,6 +9,8 @@ const app = express();
 const connectDB = require('./db');
 const initDB = require('./initDb');
 
+
+
 function parseNumber(value) {
   if (value === null || value === undefined || value === "") return 0;
   const num = Number(value);
@@ -655,12 +657,14 @@ app.get("/api/emails", (req, res) => {
   }
 });
 
+const PORT = process.env.PORT || 5050;
+
 initDB()
   .then(async () => {
     await importEmployeesFromExcel();
 
-    app.listen(5050, () => {
-      console.log('Server running on http://localhost:5050');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => {

@@ -2,11 +2,11 @@ const path = require("path");
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 
-// This function opens a connection to the SQLite database file.
-// If the file does not exist, SQLite creates it automatically.
 async function connectDB() {
+  const dbPath = process.env.DB_PATH || path.join(__dirname, "payroll.db");
+
   return open({
-    filename: path.join(__dirname, "payroll.db"),
+    filename: dbPath,
     driver: sqlite3.Database,
   });
 }
