@@ -52,38 +52,51 @@ const stack = [
 const screens = [
   {
     title: "Login Page",
-    text: "Secure login for employees and admin.",
-    image: loginImg
+    text: "Secure login flow for both employees and administrators.",
+    image: loginImg,
   },
   {
     title: "Employee Dashboard",
-    text: "Employees can clock in and view work logs.",
-    image: employeeImg
+    text: "Employees can clock in, clock out, and review their work logs clearly.",
+    image: employeeImg,
   },
   {
     title: "Admin Dashboard",
-    text: "Admin can manage payroll and edit entries.",
-    image: adminImg
+    text: "Admin can search payroll records, calculate pay, and manage attendance data.",
+    image: adminImg,
   },
   {
     title: "Edit Entry",
-    text: "Admin can correct late clock-ins.",
-    image: editImg
-  }
+    text: "Admin can correct late or missed clock-ins and recalculate payroll instantly.",
+    image: editImg,
+  },
 ];
+
+const redirectToLogin = () => {
+  window.location.href = "/login";
+};
+
+const scrollToSection = (id) => {
+  const section = document.getElementById(id);
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth" });
+  }
+};
 
 function PunchWayShowcase() {
   return (
     <div className="showcase-page">
-        <nav className="nav">
-  <h2>PunchWay</h2>
+      <nav className="nav">
+        <h2>PunchWay</h2>
 
-  {/* <div>
-    <a href="#features">Features</a>
-    <a href="#screens">Screens</a>
-    <a href="#stack">Tech</a>
-  </div> */}
-</nav>
+        <div className="nav-links">
+          <button onClick={() => scrollToSection("features")}>Features</button>
+          <button onClick={() => scrollToSection("screens")}>Screens</button>
+          <button onClick={() => scrollToSection("architecture")}>Architecture</button>
+          <button onClick={() => scrollToSection("stack")}>Tech Stack</button>
+        </div>
+      </nav>
+
       <section className="hero-section">
         <div className="hero-content">
           <div className="hero-left">
@@ -94,12 +107,30 @@ function PunchWayShowcase() {
               PunchWay is a modern payroll and attendance system for small
               businesses. It helps employees clock in and out easily while
               giving admins a reliable way to review hours, edit incorrect
-              entries, calculate payroll, and manage records.
+              entries, calculate payroll, and manage records in one place.
             </p>
 
             <div className="hero-buttons">
-              <button>View Features</button>
-              <button className="secondary-btn">See Architecture</button>
+              <button onClick={() => scrollToSection("features")}>
+                View Features
+              </button>
+
+              <button
+                className="secondary-btn"
+                onClick={() => scrollToSection("architecture")}
+              >
+                See Architecture
+              </button>
+
+              <button onClick={redirectToLogin}>Launch Product</button>
+
+              <a
+                href="https://github.com/Ramanabadeti/uspetropayrole.git"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <button className="github-btn">View Code</button>
+              </a>
             </div>
 
             <div className="stats-grid">
@@ -117,9 +148,9 @@ function PunchWayShowcase() {
               <div className="preview-header">
                 <div>
                   <p className="small-label">Admin Overview</p>
-                  <h3>March Payroll Summary</h3>
+                  <h3>Payroll Summary</h3>
                 </div>
-                <span className="status-badge">Payroll Ready</span>
+                <span className="status-badge">System Ready</span>
               </div>
 
               <div className="summary-cards">
@@ -145,6 +176,7 @@ function PunchWayShowcase() {
                   <span>Out</span>
                   <span>Status</span>
                 </div>
+
                 <div className="mini-table-row">
                   <span>Ramana</span>
                   <span>03/14/2026</span>
@@ -152,6 +184,7 @@ function PunchWayShowcase() {
                   <span>05:30 PM</span>
                   <span>Completed</span>
                 </div>
+
                 <div className="mini-table-row">
                   <span>OP</span>
                   <span>03/14/2026</span>
@@ -159,6 +192,7 @@ function PunchWayShowcase() {
                   <span>05:15 PM</span>
                   <span>Corrected</span>
                 </div>
+
                 <div className="mini-table-row">
                   <span>John</span>
                   <span>03/14/2026</span>
@@ -178,10 +212,10 @@ function PunchWayShowcase() {
           <h2>Why PunchWay was built</h2>
           <p>
             Small businesses often manage attendance and payroll using manual
-            methods or Excel sheets. That creates payroll mistakes, makes editing
-            difficult, and becomes unreliable when internet access is unavailable.
-            PunchWay replaces that with a clean fullstack system built for real
-            business use.
+            methods or Excel sheets. That creates payroll mistakes, makes
+            editing difficult, and becomes unreliable when internet access is
+            unavailable. PunchWay replaces that with a clean fullstack system
+            built for real business use.
           </p>
         </div>
 
@@ -190,26 +224,27 @@ function PunchWayShowcase() {
             <h3>For Employees</h3>
             <p>
               A simple workflow for logging in, clocking in, clocking out, and
-              checking work history.
+              checking work history without confusion.
             </p>
           </div>
+
           <div className="info-box">
             <h3>For Admins</h3>
             <p>
               A reliable interface for reviewing hours, correcting entries,
-              calculating pay, and managing payroll records.
+              calculating pay, and managing payroll records efficiently.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="features-section">
+      <section className="features-section" id="features">
         <div className="section-heading center">
           <p className="badge light">Features</p>
           <h2>Built for real payroll workflows</h2>
           <p>
-            PunchWay combines attendance tracking, payroll review, correction tools,
-            and local database storage into one system.
+            PunchWay combines attendance tracking, payroll review, correction
+            tools, and local database storage into one practical system.
           </p>
         </div>
 
@@ -223,19 +258,24 @@ function PunchWayShowcase() {
         </div>
       </section>
 
-      <section className="screens-section">
+      <section className="screens-section" id="screens">
         <div className="section-heading">
-          <p className="badge light">Product Screens</p>
-          <h2>Show the product clearly</h2>
+          <p className="badge light">Product Layout</p>
+          <h2>Project Screens</h2>
           <p>
-            These blocks can be replaced with your actual PunchWay screenshots.
+            These are the main working screens of PunchWay used by employees
+            and administrators.
           </p>
         </div>
 
         <div className="screens-grid">
           {screens.map((screen) => (
             <div key={screen.title} className="screen-card">
-             <img src={screen.image} className="screen-img" alt={screen.title} />
+              <img
+                src={screen.image}
+                className="screen-img"
+                alt={screen.title}
+              />
               <h3>{screen.title}</h3>
               <p>{screen.text}</p>
             </div>
@@ -243,7 +283,7 @@ function PunchWayShowcase() {
         </div>
       </section>
 
-      <section className="architecture-section">
+      <section className="architecture-section" id="architecture">
         <div className="section-heading center dark-text">
           <p className="badge dark">Architecture</p>
           <h2>Clean fullstack architecture</h2>
@@ -262,22 +302,26 @@ function PunchWayShowcase() {
               editing, and reporting.
             </p>
           </div>
+
           <div className="architecture-card">
             <h3>Node + Express Backend</h3>
             <p>
-              Handles attendance APIs, payroll logic, and admin correction routes.
+              Handles attendance APIs, payroll logic, employee data, and admin
+              correction routes.
             </p>
           </div>
+
           <div className="architecture-card">
             <h3>SQLite Database</h3>
             <p>
-              Stores employees, active sessions, time entries, and admin edit history locally.
+              Stores employees, active sessions, time entries, and admin edit
+              history locally for consistent offline access.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="stack-section">
+      <section className="stack-section" id="stack">
         <div className="section-heading">
           <p className="badge light">Tech Stack</p>
           <h2>Built with practical fullstack tools</h2>
@@ -297,8 +341,21 @@ function PunchWayShowcase() {
       </section>
 
       <footer className="showcase-footer">
-        <p>PunchWay — Employee Time Tracking & Payroll Showcase</p>
-        <p>Built with React, Node.js, Express, and SQLite</p>
+        <div>
+          <p>PunchWay — Employee Time Tracking & Payroll Showcase</p>
+          <p>Built with React, Node.js, Express, and SQLite</p>
+        </div>
+
+        <div className="footer-links">
+          <a
+            href="https://github.com/Ramanabadeti/uspetropayrole.git"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub Repository
+          </a>
+          <button onClick={redirectToLogin}>Open App</button>
+        </div>
       </footer>
     </div>
   );
