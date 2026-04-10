@@ -1,198 +1,156 @@
-PUNCHWAY – EMPLOYEE TIME TRACKING & PAYROLL SYSTEM
+# PunchWay — Employee Time Tracking & Payroll System
 
-PunchWay is a fullstack employee attendance and payroll management
-system built for small businesses such as gas stations, shops, and
-service companies.
+**A full-stack payroll app that replaces spreadsheets and manual timekeeping for small businesses.** Employees clock in/out from any browser; admins review hours, fix errors, and export payroll PDFs — all backed by a local SQLite database that works offline.
 
-It allows employees to clock in and clock out easily, while
-administrators can review work hours, edit incorrect entries, and
-calculate payroll accurately.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=flat-square&logo=vercel)](https://uspetropayrole.vercel.app)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?style=flat-square&logo=express)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)
 
-The system works offline because it stores data locally using SQLite
-database.
+---
 
-------------------------------------------------------------------------
+## The Problem It Solves
 
-PROJECT PURPOSE
+Small businesses (gas stations, shops, service teams) track attendance in Excel files or on paper. The result: miscalculated pay, overwritten data, impossible-to-audit edits, and hours of manual work every payday. PunchWay eliminates all of that.
 
-Many small businesses track attendance manually or using Excel files,
-which can lead to:
+---
 
-• incorrect pay calculations • lost or overwritten data • difficulty
-editing past records • dependency on internet tools • manual errors
+## Live Demo
 
-PunchWay solves these problems by providing a simple, reliable, and
-offline-capable payroll system.
+**[https://uspetropayrole.vercel.app](https://uspetropayrole.vercel.app)**
 
-------------------------------------------------------------------------
+---
 
-MAIN FEATURES
+## Screenshots
 
-EMPLOYEE FEATURES
+> _Add screenshots or a demo GIF here — e.g. employee clock-in screen, admin payroll table, PDF export_
 
-Employees can:
+| Employee Dashboard | Admin Payroll View |
+|---|---|
+| ![Employee Dashboard](screenshots/employee-dashboard.png) | ![Admin View](screenshots/admin-payroll.png) |
 
-• login securely • clock in • clock out • automatically record work date
-and time • refresh page without losing session • see their work logs •
-view total hours worked • system works even without internet
+---
 
-------------------------------------------------------------------------
+## Key Features
 
-ADMIN FEATURES
+**Employee**
+- Secure login, one-click clock in / clock out
+- Session survives page refresh (no lost clock-ins)
+- Monthly attendance log with total and decimal hours
 
-Admin can:
+**Admin**
+- Search any employee's records by month and year
+- Enter hourly rate → daily and monthly pay calculated instantly
+- Edit incorrect clock times → pay recalculates automatically, edit logged in an audit trail
+- Add payment notes, track paid vs. pending amounts
+- Export payroll summary as a PDF
+- Import historical attendance data from Excel
 
-• search employee logs by month and year • see total hours worked • see
-decimal hours for accurate payroll calculation • manually enter hourly
-pay rate • edit incorrect clock-in or clock-out times • automatically
-recalculate pay after edit • see corrected entries • add notes and
-payment remarks • track paid amount and pending amount • generate
-payroll summary PDF • send payroll email • view historical attendance
-records
+**System**
+- Runs entirely offline — SQLite on local disk, no cloud dependency
+- Full audit log of every admin correction
+- Status tracking: `completed` / `corrected` / `imported`
 
-------------------------------------------------------------------------
+---
 
-SYSTEM FEATURES
+## Tech Stack
 
-• local SQLite database storage • offline-first design • automatic hour
-calculation • automatic pay calculation • admin edit tracking •
-historical Excel import supported • responsive UI • clean aligned table
-layout • modular backend API structure
+| Layer | Stack |
+|---|---|
+| Frontend | React 19, React Router v7 |
+| Backend | Node.js, Express 5 |
+| Database | SQLite (`sqlite3`) |
+| PDF Export | jsPDF + html2canvas |
+| Excel Import | xlsx |
 
-------------------------------------------------------------------------
+---
 
-TECHNOLOGY STACK
+## Architecture
 
-FRONTEND React.js HTML CSS JavaScript
+```
+React (port 3000)
+      │
+      │  JSON REST API
+      ▼
+Express (port 5050)
+      │
+      │  SQL
+      ▼
+SQLite — payroll.db (local file)
+```
 
-BACKEND Node.js Express.js
+Single-machine deployment. No external services, no environment variables required to get running.
 
-DATABASE SQLite
+---
 
-LIBRARIES USED sqlite3 xlsx html2canvas jspdf cors body-parser
+## Setup & Installation
 
-------------------------------------------------------------------------
+**Prerequisites:** Node.js v18+
 
-APPLICATION ARCHITECTURE
+```bash
+# Clone
+git clone https://github.com/ramanabadeti/uspetropayrole.git
+cd uspetropayrole
 
-Frontend (React) | | API Requests | Backend (Node + Express) | | SQL
-Queries | SQLite Database (Local Storage)
+# Install dependencies
+npm install
 
-------------------------------------------------------------------------
+# Initialize database (creates payroll.db + all tables)
+node initDb.js
 
-PROJECT FOLDER STRUCTURE
+# Seed employees
+node importEmployees.js
 
-PunchWay
+# Optional: import historical Excel data
+node importHistoricalEntries.js
+```
 
-client src components Login Home Admin Header
+**Run:**
 
-server server.js db.js initDb.js importEmployees.js
-importHistoricalEntries.js
+```bash
+# Terminal 1 — API server
+node server.js          # http://localhost:5050
 
-payroll.db
+# Terminal 2 — React frontend
+npm run dev             # http://localhost:3000
+```
 
-README.txt
+---
 
-------------------------------------------------------------------------
+## API Endpoints
 
-HOW THE SYSTEM WORKS
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/login` | Authenticate employee or admin |
+| `POST` | `/clock-in` | Start a clock-in session |
+| `POST` | `/clock-data` | Save completed clock entry with calculated hours/pay |
+| `GET` | `/clock-in/:name` | Get active session for an employee |
+| `POST` | `/api/employee-logs` | Fetch logs filtered by employee, month, year |
+| `GET` | `/api/employees` | List all employees |
+| `GET` | `/api/time-entries` | All time entries (optional query filters) |
+| `PUT` | `/api/time-entry/:id` | Edit entry → recalculate + write to audit log |
+| `POST` | `/api/save-admin-note` | Attach payment note to an entry |
+| `GET` | `/api/emails` | Get employee email addresses |
 
-EMPLOYEE WORKFLOW
+---
 
-1.  employee logs in
-2.  employee clicks Clock In
-3.  system stores start time
-4.  employee works shift
-5.  employee clicks Clock Out
-6.  system calculates: total hours decimal hours daily pay
-7.  record stored in database
-8.  employee can see monthly logs
+## Database Schema (condensed)
 
-------------------------------------------------------------------------
+```
+employees        → id, emp_no, name, password, role, mail_id
+active_sessions  → emp_name, clock_in_time, in_date, month, year
+time_entries     → id, emp_name, clock times, total_hours, decimal_hours,
+                   hourly_rate, day_pay, month, year, status, updated_at
+admin_edits      → time_entry_id, old/new times, old/new pay, edit_reason,
+                   edited_by, edited_at
+```
 
-ADMIN WORKFLOW
+---
 
-1.  admin logs in
-2.  selects employee
-3.  selects month and year
-4.  enters hourly rate
-5.  clicks search
-6.  system displays: work dates clock in time clock out time total hours
-    decimal hours pay per day
-7.  admin can edit incorrect time
-8.  system recalculates hours automatically
-9.  admin can add notes or payment details
-10. admin can generate PDF report
-11. admin can send email
+## Author
 
-------------------------------------------------------------------------
+**Raman Abadeti** — Full-Stack Developer
 
-DATABASE STRUCTURE
-
-DATABASE FILE payroll.db
-
-TABLE: employees id name password
-
-TABLE: active_sessions emp_name clock_in_time in_time in_date month year
-
-TABLE: time_entries id emp_name clock_in_date clock_in_time
-clock_out_date clock_out_time total_hours decimal_hours hourly_rate
-day_pay month year status updated_at
-
-status values: normal corrected imported
-
-TABLE: admin_edits id time_entry_id old_clock_in_time new_clock_in_time
-edit_reason edited_by edited_at
-
-------------------------------------------------------------------------
-
-API ENDPOINTS
-
-POST /login POST /clock-in POST /clock-data GET /clock-in/{employeeName}
-POST /api/employee-logs GET /api/employees GET /api/time-entries PUT
-/api/time-entry/{id} POST /api/save-admin-note POST /api/admin-note-list
-GET /api/emails
-
-------------------------------------------------------------------------
-
-INSTALLATION STEPS
-
-1.  clone project git clone repository_url
-
-2.  install frontend cd client npm install
-
-3.  install backend cd server npm install
-
-4.  create database node initDb.js
-
-5.  import employees node importEmployees.js
-
-6.  import historical Excel data node importHistoricalEntries.js
-
-7.  start backend node server.js
-
-8.  start frontend cd client npm start
-
-frontend runs on http://localhost:3000 backend runs on
-http://localhost:5050
-
-------------------------------------------------------------------------
-
-OFFLINE CAPABILITY
-
-PunchWay works without internet connection because:
-
-• SQLite database runs locally • all API requests run on local server •
-data stored on local machine • no cloud dependency
-
-Employees can clock in and clock out even if internet stops working.
-
-------------------------------------------------------------------------
-
-AUTHOR
-
-Fullstack payroll system demonstrating:
-
-React frontend Node backend REST API design SQLite database real
-business logic
-# PunchWay
+- GitHub: [@ramanabadeti](https://github.com/ramanabadeti)
+- Live: [uspetropayrole.vercel.app](https://uspetropayrole.vercel.app)
