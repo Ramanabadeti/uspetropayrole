@@ -59,21 +59,25 @@ class Login extends Component {
             className="login-logo"
         />
         <h1>US PETRO</h1> {/* ⬅️ now outside the form */}
-        <form onSubmit={this.onSubmitForm} className="loginForm">
+        <form onSubmit={this.onSubmitForm} className="loginForm" autoComplete="off">
           <label htmlFor='username'>Username</label>
           <input
+            value={this.state.username}
             onChange={this.onChangeUsername}
             id='username'
             type='text'
             placeholder='Enter username'
+            autoComplete="off"
             required
           />
           <label htmlFor='password'>Password</label>
           <input
+            value={this.state.password}
             onChange={this.onChangePassword}
             id='password'
             type='password'
             placeholder='Enter password'
+            autoComplete="new-password"
             required
           />
           <button type='submit'>Log In</button>

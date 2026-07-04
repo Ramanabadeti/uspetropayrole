@@ -338,7 +338,6 @@ const Admin = () => {
     <th>TOTAL HOURS</th>
     <th>DECIMAL HOURS</th>
     <th>PAY PER DAY</th>
-    <th>STATUS</th>
     <th>ACTION</th>
   </tr>
 </thead>
@@ -353,7 +352,6 @@ const Admin = () => {
       <td>{entry.totalHours}</td>
       <td>{Number(entry.decimalHours || 0).toFixed(2)}</td>
       <td>${allPay[index]}</td>
-      <td>{entry.status}</td>
       <td>
         <button onClick={() => openEditForm(entry)}>Edit</button>
       </td>
