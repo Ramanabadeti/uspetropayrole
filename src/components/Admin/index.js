@@ -390,6 +390,7 @@ const Admin = () => {
 
       {selectedEmployee && monthlyStats.length > 0 && (
         <div
+          data-html2canvas-ignore="true"
           style={{
             marginTop: "30px",
             padding: "20px",
