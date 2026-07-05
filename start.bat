@@ -1,4 +1,8 @@
 @echo off
+echo Installing any dependencies picked up by a git pull...
+call npm install
+
+echo.
 echo Building the app...
 call npm run build
 

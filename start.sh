@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+echo "Installing any dependencies picked up by a git pull..."
+npm install
+
+echo
 echo "Building the app..."
 npm run build
 
