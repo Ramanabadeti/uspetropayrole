@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import StatsChart from "./StatsChart";
 import "./index.css";
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 const Admin = () => {
   const [entries, setEntries] = useState([]);
@@ -168,20 +173,65 @@ const Admin = () => {
     }
   };
 
+  const buildPayrollPdf = () => {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const monthName =
+      MONTH_NAMES[Number(selectedMonth) - 1] || selectedMonth || "";
+
+    pdf.setFontSize(16);
+    pdf.text("US PETRO — Payroll Statement", 14, 18);
+    pdf.setFontSize(11);
+    pdf.text(`Employee: ${selectedEmployee}`, 14, 27);
+    pdf.text(`Pay Period: ${monthName} ${selectedYear}`, 14, 33);
+    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 39);
+
+    autoTable(pdf, {
+      startY: 45,
+      head: [["Date", "In", "Out", "Total Hours", "Pay"]],
+      body: entries.map((entry, index) => [
+        entry.clockInDate,
+        entry.clockInTime,
+        entry.clockOutTime,
+        entry.totalHours,
+        `$${allPay[index]}`,
+      ]),
+      foot: [["Total", "", "", totalHours.toFixed(2), `$${totalPay.toFixed(2)}`]],
+      headStyles: { fillColor: [33, 46, 64] },
+      footStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold" },
+    });
+
+    if (noteDate.length > 0) {
+      const afterEntriesY = pdf.lastAutoTable.finalY + 12;
+      pdf.setFontSize(13);
+      pdf.text("Payments", 14, afterEntriesY);
+
+      autoTable(pdf, {
+        startY: afterEntriesY + 4,
+        head: [["Date", "Note", "Amount Paid"]],
+        body: noteDate.map((date, index) => [
+          date,
+          note[index] || "",
+          `$${paid[index]}`,
+        ]),
+        foot: [
+          ["", "Total Paid", `$${totalPaid.toFixed(2)}`],
+          ["", "Pending Balance", `$${pendingPay}`],
+        ],
+        headStyles: { fillColor: [33, 46, 64] },
+        footStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: "bold" },
+      });
+    }
+
+    return pdf;
+  };
+
   const handleSendMail = async () => {
     if (!Array.isArray(emailList)) {
       alert("Email list is not loaded correctly.");
       return;
     }
 
-    const canvas = await html2canvas(document.body, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    const pdf = buildPayrollPdf();
 
     const today = new Date().toISOString().split("T")[0];
     const pdfFileName = `${selectedEmployee}_payroll_${today}.pdf`;
@@ -390,7 +440,6 @@ const Admin = () => {
 
       {selectedEmployee && monthlyStats.length > 0 && (
         <div
-          data-html2canvas-ignore="true"
           style={{
             marginTop: "30px",
             padding: "20px",
