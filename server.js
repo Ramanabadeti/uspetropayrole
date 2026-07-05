@@ -216,7 +216,7 @@ app.post('/api/employee-logs', async (req, res) => {
       params.push(normalizeText(year));
     }
 
-    query += ` ORDER BY id DESC`;
+    query += ` ORDER BY clock_in_full_time ASC, id ASC`;
 
     const logs = await db.all(query, params);
 

@@ -17,8 +17,8 @@ class EmployeeHome extends Component {
     outDate: null,
     records: [],
     empName: "",
-    month: null,
-    year: null,
+    month: String(new Date().getMonth() + 1),
+    year: String(new Date().getFullYear()),
     payRate: 0,
     hideClockInBtn: false,
     totalHoursWorked: 0.0,
@@ -128,8 +128,6 @@ class EmployeeHome extends Component {
           month: String(now.getMonth() + 1),
           year: String(now.getFullYear()),
         });
-
-        this.renderEmployeeLogs();
       });
   };
 
