@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import StatsChart from "./StatsChart";
 import "./index.css";
 
 const Admin = () => {
@@ -17,6 +18,8 @@ const Admin = () => {
   const [noteInput, setNoteInput] = useState("");
   const [amountPaidInput, setAmountPaidInput] = useState("");
   const [emailList, setEmailList] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [statsRange, setStatsRange] = useState("12");
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -27,7 +30,7 @@ const Admin = () => {
   const [editReason, setEditReason] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5050/api/emails")
+    fetch("/api/emails")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -40,7 +43,7 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:5050/api/employees")
+    fetch("/api/employees")
       .then((res) => res.json())
       .then((data) => setEmployees(data))
       .catch((err) => console.error("Failed to load employees", err));
@@ -51,14 +54,24 @@ const Admin = () => {
     setNoteDate([]);
     setNote([]);
     setPaid([]);
+    setMonthlyStats([]);
 
     if (!selectedEmployee || !selectedMonth || !selectedYear || !payRate) {
       alert("Please select employee, month, year, and enter pay rate.");
       return;
     }
 
+    fetch(
+      `/api/employee-stats?employeeName=${encodeURIComponent(
+        selectedEmployee
+      )}`
+    )
+      .then((res) => res.json())
+      .then((data) => setMonthlyStats(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Failed to load employee stats:", err));
+
     try {
-      const response = await fetch("http://localhost:5050/api/employee-logs", {
+      const response = await fetch("/api/employee-logs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -75,22 +88,19 @@ const Admin = () => {
       const validData = Array.isArray(data) ? data : [];
       setEntries(validData);
 
-      const fileNameFormat = `/Users/ramanabadeti/Desktop/PROJECTS/PunchWay/${selectedMonth}-${selectedYear} paysheet.xlsx`;
-
-      const bodyNote = { fileNameFormat };
-      fetch("http://localhost:5050/api/admin-note-list", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyNote),
-      })
+      fetch(
+        `/api/admin-notes?employeeName=${encodeURIComponent(
+          selectedEmployee
+        )}&month=${encodeURIComponent(selectedMonth)}&year=${encodeURIComponent(
+          selectedYear
+        )}`
+      )
         .then((res) => res.json())
         .then((noteData) => {
-          const filteredNotes = noteData.filter(
-            (d) => d.employeeName === selectedEmployee
-          );
-          setNoteDate(filteredNotes.map((d) => d.noteDate));
-          setNote(filteredNotes.map((d) => d.note));
-          setPaid(filteredNotes.map((d) => parseFloat(d.amountPaid) || 0));
+          const validNotes = Array.isArray(noteData) ? noteData : [];
+          setNoteDate(validNotes.map((d) => d.noteDate));
+          setNote(validNotes.map((d) => d.note));
+          setPaid(validNotes.map((d) => parseFloat(d.amountPaid) || 0));
         })
         .catch((err) => {
           console.error("Failed to load notes:", err);
@@ -125,7 +135,7 @@ const Admin = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5050/api/time-entry/${selectedEntry.id}`,
+        `/api/time-entry/${selectedEntry.id}`,
         {
           method: "PUT",
           headers: {
@@ -202,19 +212,17 @@ const Admin = () => {
       return;
     }
 
-    const filePath = `/Users/ramanabadeti/Desktop/PROJECTS/PunchWay/${selectedMonth}-${selectedYear} paysheet.xlsx`;
-
-    fetch("http://localhost:5050/api/save-admin-note", {
+    fetch("/api/admin-notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        filePath,
         empName: selectedEmployee,
-        sheetName: "NotesSheet",
         noteDate: noteDateInput,
         note: noteInput,
         amountPaid: amountPaidInput,
-        amountPending: 0
+        amountPending: 0,
+        month: selectedMonth,
+        year: selectedYear
       }),
     })
       .then((res) => res.json())
@@ -249,6 +257,11 @@ const Admin = () => {
 
   const totalPaid = paid.reduce((sum, val) => sum + parseFloat(val || 0), 0);
   const pendingPay = (totalPay - totalPaid).toFixed(2);
+
+  const filteredStats = useMemo(() => {
+    if (statsRange === "all") return monthlyStats;
+    return monthlyStats.slice(-Number(statsRange));
+  }, [monthlyStats, statsRange]);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -374,6 +387,45 @@ const Admin = () => {
 </tbody>
   </table>
 </div>
+
+      {selectedEmployee && monthlyStats.length > 0 && (
+        <div
+          style={{
+            marginTop: "30px",
+            padding: "20px",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "10px",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Statistics — {selectedEmployee}</h3>
+            <div>
+              <label style={{ marginRight: "8px" }}>Range:</label>
+              <select
+                value={statsRange}
+                onChange={(e) => setStatsRange(e.target.value)}
+              >
+                <option value="6">Last 6 months</option>
+                <option value="12">Last 12 months</option>
+                <option value="24">Last 24 months</option>
+                <option value="all">Entire history</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginTop: "20px" }}>
+            <StatsChart stats={filteredStats} />
+          </div>
+        </div>
+      )}
 
       {isEditOpen && (
         <div

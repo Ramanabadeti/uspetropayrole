@@ -11,7 +11,7 @@ class Login extends Component {
   };
 
   componentDidMount() {
-    fetch("http://localhost:5050/api/employees")
+    fetch("/api/employees")
       .then(res => res.json())
       .then(data => {
         console.log("Loaded users:", data); // Optional: for debugging

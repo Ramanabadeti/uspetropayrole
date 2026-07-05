@@ -80,6 +80,20 @@ async function initDB() {
   )
 `);
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      emp_name TEXT NOT NULL,
+      note_date TEXT,
+      note TEXT,
+      amount_paid REAL DEFAULT 0,
+      amount_pending REAL DEFAULT 0,
+      month TEXT,
+      year TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log("Database initialized successfully.");
 }
 

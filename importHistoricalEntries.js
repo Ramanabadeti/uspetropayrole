@@ -1,9 +1,11 @@
+require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
 const connectDB = require("./db");
+const { DATA_DIR } = require("./config");
 
-const BASE_DIR = "/Users/ramanabadeti/Desktop/PROJECTS/PunchWay";
+const BASE_DIR = DATA_DIR;
 
 function normalizeText(value) {
   if (value === null || value === undefined) return "";

@@ -1,11 +1,17 @@
+const fs = require("fs");
 const XLSX = require("xlsx");
 const connectDB = require("./db");
+const { EMPLOYEE_SHEET_PATH } = require("./config");
 
 async function importEmployeesFromExcel() {
   const db = await connectDB();
 
-  // Change this to your new Mac path
-  const filePath = "/Users/ramanabadeti/Desktop/PROJECTS/PunchWay/blank pay sheet.xlsx";
+  const filePath = EMPLOYEE_SHEET_PATH;
+
+  if (!fs.existsSync(filePath)) {
+    console.warn(`Employee sheet not found at ${filePath} — skipping employee import.`);
+    return;
+  }
 
   const workbook = XLSX.readFile(filePath);
   const worksheet = workbook.Sheets["EmployeeDetails"];

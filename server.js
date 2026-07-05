@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -8,6 +9,7 @@ const importEmployeesFromExcel = require('./importEmployees');
 const app = express();
 const connectDB = require('./db');
 const initDB = require('./initDb');
+const { EMPLOYEE_SHEET_PATH } = require('./config');
 
 
 
@@ -222,6 +224,38 @@ app.post('/api/employee-logs', async (req, res) => {
   } catch (error) {
     console.error('Error fetching employee logs:', error);
     res.status(500).json({ error: 'Failed to fetch employee logs' });
+  }
+});
+
+app.get('/api/employee-stats', async (req, res) => {
+  try {
+    const { employeeName } = req.query;
+
+    if (!employeeName) {
+      return res.status(400).json({ error: 'Employee name is required' });
+    }
+
+    const db = await connectDB();
+
+    const rows = await db.all(
+      `
+      SELECT
+        month,
+        year,
+        SUM(decimal_hours) AS totalHours,
+        SUM(day_pay) AS totalPay
+      FROM time_entries
+      WHERE emp_name = ?
+      GROUP BY year, month
+      ORDER BY CAST(year AS INTEGER) ASC, CAST(month AS INTEGER) ASC
+      `,
+      [normalizeText(employeeName)]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching employee stats:', error);
+    res.status(500).json({ error: 'Failed to fetch employee stats' });
   }
 });
 
@@ -551,76 +585,88 @@ app.delete('/clock-in/:empName', async (req, res) => {
   }
 });
 
-app.post("/api/save-admin-note", (req, res) => {
-  const { filePath, empName, sheetName, noteDate, note, amountPaid, amountPending } = req.body;
-
+app.post("/api/admin-notes", async (req, res) => {
   try {
-    // Load workbook and worksheet
-    const workbook = XLSX.readFile(filePath);
-    const worksheet = workbook.Sheets[sheetName];
+    const { empName, noteDate, note, amountPaid, amountPending, month, year } = req.body;
 
-    const data = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-    const rowIndex = data.findIndex(row => row.noteDate === noteDate);
-
-    if (rowIndex !== -1) {
-      // Update existing row
-      data[rowIndex].employeeName = empName;
-      data[rowIndex].note = note;
-      data[rowIndex].amountPaid = amountPaid;
-      data[rowIndex].amountPending = amountPending;
-    } else {
-      // Append new row with note-related info only (fallback)
-      data.push({
-        employeeName: empName,
-        noteDate: noteDate,
-        note,
-        amountPaid,
-        amountPending
-      });
+    if (!empName || !noteDate) {
+      return res.status(400).json({ error: "Employee name and note date are required" });
     }
 
-    // ✅ Define a consistent column order if needed
-    const headers = Object.keys(data[0]);
+    const db = await connectDB();
 
-    // ✅ Rewrite updated sheet
-    const newWorksheet = XLSX.utils.json_to_sheet(data, { header: headers });
-    workbook.Sheets[sheetName] = newWorksheet;
-
-    // Save Excel file
-    XLSX.writeFile(workbook, filePath);
+    await db.run(
+      `
+      INSERT INTO admin_notes (
+        emp_name, note_date, note, amount_paid, amount_pending, month, year
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        normalizeText(empName),
+        normalizeText(noteDate),
+        normalizeText(note),
+        parseNumber(amountPaid),
+        parseNumber(amountPending),
+        normalizeText(month),
+        normalizeText(year)
+      ]
+    );
 
     res.status(200).json({ message: "Note saved successfully" });
   } catch (error) {
-    console.error("Error saving note to Excel:", error);
+    console.error("Error saving admin note:", error);
     res.status(500).json({ error: "Failed to save note" });
   }
 });
 
-app.post('/api/admin-note-list', (req, res) => {
-  const { fileNameFormat } = req.body;
-
-  if (!fs.existsSync(fileNameFormat)) {
-    return res.status(404).json({ error: "File not found" });
-  }
-
+app.get('/api/admin-notes', async (req, res) => {
   try {
-    const workbook = XLSX.readFile(fileNameFormat);
-    const sheet = workbook.Sheets["NotesSheet"];
-    if (!sheet) {
-      return res.status(400).json({ error: "Sheet 'NotesSheet' not found" });
+    const { employeeName, month, year } = req.query;
+
+    if (!employeeName) {
+      return res.status(400).json({ error: "Employee name is required" });
     }
 
-    const data = XLSX.utils.sheet_to_json(sheet); 
-    res.json(data);
+    const db = await connectDB();
+
+    let query = `
+      SELECT
+        id,
+        emp_name AS employeeName,
+        note_date AS noteDate,
+        note,
+        amount_paid AS amountPaid,
+        amount_pending AS amountPending,
+        month,
+        year
+      FROM admin_notes
+      WHERE emp_name = ?
+    `;
+    const params = [normalizeText(employeeName)];
+
+    if (month) {
+      query += ` AND month = ?`;
+      params.push(normalizeText(month));
+    }
+
+    if (year) {
+      query += ` AND year = ?`;
+      params.push(normalizeText(year));
+    }
+
+    query += ` ORDER BY id ASC`;
+
+    const notes = await db.all(query, params);
+    res.json(notes);
   } catch (err) {
-    console.error("Failed to read Excel file:", err);
-    res.status(500).json({ error: "Error reading NotesSheet" });
+    console.error("Failed to fetch admin notes:", err);
+    res.status(500).json({ error: "Error reading admin notes" });
   }
 });
 
 app.get("/api/emails", (req, res) => {
-  const filePath = "/Users/ramanabadeti/Desktop/PROJECTS/PunchWay/blank pay sheet.xlsx";
+  const filePath = EMPLOYEE_SHEET_PATH;
 
   if (!fs.existsSync(filePath)) {
     console.error("File not found at:", filePath);
@@ -656,6 +702,14 @@ app.get("/api/emails", (req, res) => {
     res.status(500).json({ error: "Failed to parse Excel file" });
   }
 });
+
+const buildPath = path.join(__dirname, "build");
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+  app.get(/^(?!\/api|\/clock-in|\/clock-data).*/, (req, res) => {
+    res.sendFile(path.join(buildPath, "index.html"));
+  });
+}
 
 const PORT = process.env.PORT || 5050;
 

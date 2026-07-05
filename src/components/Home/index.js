@@ -40,7 +40,7 @@ class EmployeeHome extends Component {
         year: String(presentYear),
       };
 
-      const response = await fetch("http://localhost:5050/clock-in", {
+      const response = await fetch("/clock-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(clockInDetails),
@@ -62,7 +62,7 @@ class EmployeeHome extends Component {
   getEmpDetails = () => {
     const employeeName = this.props.empName;
 
-    return fetch("http://localhost:5050/api/employee-list")
+    return fetch("/api/employee-list")
       .then((res) => res.json())
       .then((data) => {
         const employee = data.find((each) => each.name === employeeName);
@@ -101,7 +101,7 @@ class EmployeeHome extends Component {
   }
 
   loadClockInData = (employeeName) => {
-    fetch(`http://localhost:5050/clock-in/${employeeName}`)
+    fetch(`/clock-in/${employeeName}`)
       .then((res) => {
         if (!res.ok) throw new Error("Not clocked in");
         return res.json();
@@ -161,7 +161,7 @@ class EmployeeHome extends Component {
       const hourlyRate = await this.getEmpDetails();
       const dayPay = Number((decimalHours * hourlyRate).toFixed(2));
 
-      const response = await fetch("http://localhost:5050/clock-data", {
+      const response = await fetch("/clock-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -204,7 +204,7 @@ class EmployeeHome extends Component {
     const employeeName = this.props.empName;
     const { month, year } = this.state;
 
-    return fetch("http://localhost:5050/api/employee-logs", {
+    return fetch("/api/employee-logs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
