@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -237,19 +237,27 @@ app.get('/api/employee-stats', async (req, res) => {
 
     const db = await connectDB();
 
+    // Pay is recorded in two places depending on how old the entry is:
+    // recent punches carry a computed day_pay, but older imported months
+    // only ever had their actual payments logged in the Notes ledger
+    // (amount_paid). The two never overlap for the same month, so summing
+    // both gives the true total without double-counting.
     const rows = await db.all(
       `
-      SELECT
-        month,
-        year,
-        SUM(decimal_hours) AS totalHours,
-        SUM(day_pay) AS totalPay
-      FROM time_entries
-      WHERE emp_name = ?
+      SELECT month, year, SUM(hours) AS totalHours, SUM(pay) AS totalPay
+      FROM (
+        SELECT month, year, decimal_hours AS hours, day_pay AS pay
+        FROM time_entries
+        WHERE emp_name = ?
+        UNION ALL
+        SELECT month, year, 0 AS hours, amount_paid AS pay
+        FROM admin_notes
+        WHERE emp_name = ?
+      )
       GROUP BY year, month
       ORDER BY CAST(year AS INTEGER) ASC, CAST(month AS INTEGER) ASC
       `,
-      [normalizeText(employeeName)]
+      [normalizeText(employeeName), normalizeText(employeeName)]
     );
 
     res.json(rows);
