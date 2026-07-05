@@ -638,6 +638,10 @@ app.get('/api/admin-notes', async (req, res) => {
 
     const db = await connectDB();
 
+    // Filter by the month/year embedded in note_date itself, not the stored
+    // month/year columns — those were tagged during the historical Excel
+    // migration based on which paysheet file a note happened to be copied
+    // into, which frequently doesn't match the note's actual date.
     let query = `
       SELECT
         id,
@@ -654,16 +658,16 @@ app.get('/api/admin-notes', async (req, res) => {
     const params = [normalizeText(employeeName)];
 
     if (month) {
-      query += ` AND month = ?`;
+      query += ` AND CAST(substr(note_date, 6, 2) AS INTEGER) = CAST(? AS INTEGER)`;
       params.push(normalizeText(month));
     }
 
     if (year) {
-      query += ` AND year = ?`;
+      query += ` AND substr(note_date, 1, 4) = ?`;
       params.push(normalizeText(year));
     }
 
-    query += ` ORDER BY id ASC`;
+    query += ` ORDER BY note_date ASC, id ASC`;
 
     const notes = await db.all(query, params);
     res.json(notes);
