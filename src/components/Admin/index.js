@@ -9,7 +9,19 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const todayIsoDate = () => new Date().toISOString().split("T")[0];
+const todayIsoDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatMDY = (isoDate) => {
+  if (!isoDate || !isoDate.includes("-")) return isoDate || "";
+  const [year, month, day] = isoDate.split("-");
+  return `${month}/${day}/${year}`;
+};
 
 const Admin = () => {
   const [entries, setEntries] = useState([]);
@@ -211,7 +223,7 @@ const Admin = () => {
         startY: afterEntriesY + 4,
         head: [["Date", "Note", "Amount Paid"]],
         body: noteDate.map((date, index) => [
-          date,
+          formatMDY(date),
           note[index] || "",
           `$${paid[index]}`,
         ]),
@@ -576,7 +588,7 @@ const Admin = () => {
         <div className="time-logs">
           <div className="row">
             {noteDate.map((each, index) => (
-              <div key={index}>{each}</div>
+              <div key={index}>{formatMDY(each)}</div>
             ))}
           </div>
           <div className="row">
