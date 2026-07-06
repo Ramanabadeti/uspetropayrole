@@ -9,6 +9,8 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const todayIsoDate = () => new Date().toISOString().split("T")[0];
+
 const Admin = () => {
   const [entries, setEntries] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -19,7 +21,7 @@ const Admin = () => {
   const [noteDate, setNoteDate] = useState([]);
   const [note, setNote] = useState([]);
   const [paid, setPaid] = useState([]);
-  const [noteDateInput, setNoteDateInput] = useState("");
+  const [noteDateInput, setNoteDateInput] = useState(todayIsoDate());
   const [noteInput, setNoteInput] = useState("");
   const [amountPaidInput, setAmountPaidInput] = useState("");
   const [emailList, setEmailList] = useState([]);
@@ -257,8 +259,13 @@ const Admin = () => {
   };
 
   const handleSubmitNote = () => {
-    if (!noteDateInput || !noteInput || !amountPaidInput) {
-      alert("Please enter date, note, and amount paid.");
+    if (!selectedEmployee || !selectedMonth || !selectedYear) {
+      alert("Search for an employee, month, and year above before submitting a payment.");
+      return;
+    }
+
+    if (!noteDateInput || !amountPaidInput) {
+      alert("Please enter date and amount paid.");
       return;
     }
 
@@ -278,7 +285,7 @@ const Admin = () => {
       .then((res) => res.json())
       .then(() => {
         alert("Note saved successfully");
-        setNoteDateInput("");
+        setNoteDateInput(todayIsoDate());
         setNoteInput("");
         setAmountPaidInput("");
         handleSearch();
@@ -544,13 +551,14 @@ const Admin = () => {
         />
         <input
           type="text"
-          placeholder="Note"
+          placeholder="Note (optional)"
           value={noteInput}
           onChange={(e) => setNoteInput(e.target.value)}
         />
         <input
           type="text"
           placeholder="Amount Paid"
+          required
           value={amountPaidInput}
           onChange={(e) => setAmountPaidInput(e.target.value)}
         />

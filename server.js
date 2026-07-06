@@ -638,11 +638,14 @@ app.get('/api/admin-notes', async (req, res) => {
 
     const db = await connectDB();
 
-    // Payments are recorded the following month from the pay period they
-    // cover (e.g. May's wages get paid, and the note logged, sometime in
-    // June) — confirmed against real notes whose text states the period
-    // explicitly (e.g. "paid off for jan month" is always dated in Feb).
-    // So a note counts toward the calendar month before its own note_date.
+    // The stored month/year is the pay period a payment counts toward —
+    // for historical notes it's which monthly paysheet file the note was
+    // filed under (the person entering it decided that at the time, which
+    // is more reliable than guessing from the note's own date: e.g. two
+    // notes both dated 12/1 were filed under different months, October and
+    // November, because they really were two separate periods' payments).
+    // For notes entered through this app, it's whatever month/year was
+    // selected in the search filters above when "Submit Note" was clicked.
     let query = `
       SELECT
         id,
@@ -659,12 +662,12 @@ app.get('/api/admin-notes', async (req, res) => {
     const params = [normalizeText(employeeName)];
 
     if (month) {
-      query += ` AND CAST(strftime('%m', date(note_date, '-1 month')) AS INTEGER) = CAST(? AS INTEGER)`;
+      query += ` AND month = ?`;
       params.push(normalizeText(month));
     }
 
     if (year) {
-      query += ` AND strftime('%Y', date(note_date, '-1 month')) = ?`;
+      query += ` AND year = ?`;
       params.push(normalizeText(year));
     }
 
