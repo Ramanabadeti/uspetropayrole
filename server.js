@@ -638,10 +638,11 @@ app.get('/api/admin-notes', async (req, res) => {
 
     const db = await connectDB();
 
-    // Filter by the month/year embedded in note_date itself, not the stored
-    // month/year columns — those were tagged during the historical Excel
-    // migration based on which paysheet file a note happened to be copied
-    // into, which frequently doesn't match the note's actual date.
+    // Payments are recorded the following month from the pay period they
+    // cover (e.g. May's wages get paid, and the note logged, sometime in
+    // June) — confirmed against real notes whose text states the period
+    // explicitly (e.g. "paid off for jan month" is always dated in Feb).
+    // So a note counts toward the calendar month before its own note_date.
     let query = `
       SELECT
         id,
@@ -658,12 +659,12 @@ app.get('/api/admin-notes', async (req, res) => {
     const params = [normalizeText(employeeName)];
 
     if (month) {
-      query += ` AND CAST(substr(note_date, 6, 2) AS INTEGER) = CAST(? AS INTEGER)`;
+      query += ` AND CAST(strftime('%m', date(note_date, '-1 month')) AS INTEGER) = CAST(? AS INTEGER)`;
       params.push(normalizeText(month));
     }
 
     if (year) {
-      query += ` AND substr(note_date, 1, 4) = ?`;
+      query += ` AND strftime('%Y', date(note_date, '-1 month')) = ?`;
       params.push(normalizeText(year));
     }
 
