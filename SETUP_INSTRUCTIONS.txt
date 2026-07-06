@@ -1,0 +1,173 @@
+US PETRO PAYROLL — INSTALLATION INSTRUCTIONS
+=============================================
+Works the same way on Mac and Windows. Windows-specific commands are
+marked [WINDOWS] and Mac-specific commands are marked [MAC].
+
+
+STEP 1 — Install prerequisites (one-time per computer)
+-------------------------------------------------------
+You need two programs installed. If you're not sure whether they're
+already installed, open a terminal (Mac: "Terminal" app. Windows:
+"PowerShell") and run:
+
+    git --version
+    node -v
+    npm -v
+
+If any of those say "not recognized" / "command not found", install:
+
+  - Git:      https://git-scm.com/downloads
+  - Node.js:  https://nodejs.org  (choose the LTS version)
+
+[WINDOWS] After installing, close and reopen PowerShell before
+continuing — Windows only picks up newly installed programs in a
+fresh terminal window.
+
+[WINDOWS] If you later see an error like "running scripts is
+disabled on this system" when running npm, run this once (only
+affects your own Windows user account, not the whole PC):
+
+    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+
+STEP 2 — Get the code
+----------------------
+Pick a folder to put the project in (Desktop is fine), then:
+
+    cd Desktop
+    git clone https://github.com/Ramanabadeti/uspetropayrole.git payroll
+    cd payroll
+
+[WINDOWS] If "cd Desktop" fails with "system cannot find the path
+specified", your Desktop may be redirected into OneDrive. Either use:
+
+    cd $env:USERPROFILE\OneDrive\Desktop
+
+  or just clone straight into C:\ instead:
+
+    cd C:\
+    git clone https://github.com/Ramanabadeti/uspetropayrole.git payroll
+    cd payroll
+
+
+STEP 3 — Install dependencies
+-------------------------------
+    npm install
+
+This may take a minute. Ignore the "vulnerabilities" and "funding"
+notices at the end — routine and not something to act on.
+
+
+STEP 4 — Configure this machine's settings
+--------------------------------------------
+[MAC]     cp .env.example .env
+[WINDOWS] copy .env.example .env
+
+Open the new .env file in any text editor and set:
+
+  PORT=5050
+      The port the app runs on. Change this if you want to run more
+      than one copy on the same machine at once (e.g. 5051 for a
+      test copy alongside a live one).
+
+  PUNCHWAY_DATA_DIR=/path/to/your/PunchWay/folder
+      The folder containing the old "PunchWay" Excel paysheets and
+      "blank pay sheet.xlsx" (employee list). Point this at wherever
+      that folder actually lives on THIS computer. If left unset it
+      defaults to a "PunchWay" folder on this user's Desktop.
+
+Save and close the file.
+
+
+STEP 5 — First time only: import historical Excel data
+----------------------------------------------------------
+Skip this step if this computer's database already has your data in
+it (e.g. you're just re-cloning the same machine after a problem).
+
+Run once:
+
+    npm run migrate-legacy
+
+This reads every paysheet Excel file plus the employee list in your
+PUNCHWAY_DATA_DIR folder and loads employees, time entries, and
+payment notes into a brand new database file (payroll.db). It only
+reads those Excel files — it never modifies or deletes them, and it's
+safe to run again if something looks wrong (it skips anything it's
+already imported, no duplicates).
+
+
+STEP 6 — Build and start
+--------------------------
+[MAC]     ./start.sh
+[WINDOWS] .\start.bat
+
+Wait until you see "Server running on port 5050" (or whatever port
+you set), then open in a browser:
+
+    http://localhost:5050
+
+Employee usernames/passwords are whatever's in the "EmployeeDetails"
+sheet of your "blank pay sheet.xlsx".
+
+
+STEP 7 — Future updates
+-------------------------
+Whenever new changes are available (someone tells you to update, or
+you know a fix went out), run:
+
+[MAC]     ./update.sh
+[WINDOWS] .\update.bat
+
+This does everything in one go: pulls the latest code, installs any
+newly-added dependencies, rebuilds the app, and starts it.
+
+If you'd rather do it in separate steps instead:
+
+    git pull
+    npm install
+    npm run build
+    npm start
+
+Note: running .\start.bat (or ./start.sh) after a plain "git pull"
+also works on its own — it installs and rebuilds automatically too.
+autostart.bat/autostart.sh do NOT install or rebuild — see Step 8.
+
+
+STEP 8 — Optional: start automatically when the computer turns on
+----------------------------------------------------------------------
+Use this only after you've successfully run Step 6 or Step 7 at least
+once on this machine (there needs to be an existing build to serve).
+
+[WINDOWS]
+  1. Press Win+R, type: shell:startup , press Enter.
+  2. Right-click inside that folder -> New -> Shortcut.
+  3. Browse to and select autostart.bat inside this project folder.
+  4. Name it "US Petro Payroll" and finish.
+
+[MAC]
+  Add autostart.sh as a Login Item:
+  System Settings -> General -> Login Items -> add autostart.sh
+  (or point a launchd agent at it, if you're comfortable with that).
+
+autostart.bat / autostart.sh only start the already-built app quickly
+— they do not pull, install, or rebuild anything. If you've just
+updated the code, run Step 7's update script manually first.
+
+
+TROUBLESHOOTING QUICK REFERENCE
+---------------------------------
+"Module not found: ... 'xyz'" when building
+    -> Run: npm install       (a git pull brought in a new dependency)
+
+"ENOENT ... build\index.html" / "build/index.html" when starting
+    -> The app was started before it was ever built. Run start.bat /
+       ./start.sh instead of autostart.bat / npm start directly.
+
+"Legacy data folder not found" when running migrate-legacy
+    -> PUNCHWAY_DATA_DIR in .env doesn't point at the right folder on
+       this computer. Fix the path and try again.
+
+Port already in use
+    -> Another copy of the app (or something else) is already using
+       that port. Either stop it, or change PORT in .env to a
+       different number (e.g. 5051) and restart.
