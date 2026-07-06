@@ -197,10 +197,11 @@ const Admin = () => {
     pdf.setFontSize(11);
     pdf.text(`Employee: ${selectedEmployee}`, 14, 27);
     pdf.text(`Pay Period: ${monthName} ${selectedYear}`, 14, 33);
-    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 39);
+    pdf.text(`Pay Rate: $${Number(payRate || 0).toFixed(2)}/hr`, 14, 39);
+    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 45);
 
     autoTable(pdf, {
-      startY: 45,
+      startY: 51,
       head: [["Date", "In", "Out", "Total Hours", "Pay"]],
       body: entries.map((entry, index) => [
         entry.clockInDate,
