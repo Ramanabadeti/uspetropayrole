@@ -237,28 +237,45 @@ app.get('/api/employee-stats', async (req, res) => {
 
     const db = await connectDB();
 
-    // Pay is recorded in two places depending on how old the entry is:
-    // recent punches carry a computed day_pay, but older imported months
-    // only ever had their actual payments logged in the Notes ledger
-    // (amount_paid). The two never overlap for the same month, so summing
-    // both gives the true total without double-counting.
-    const rows = await db.all(
-      `
-      SELECT month, year, SUM(hours) AS totalHours, SUM(pay) AS totalPay
-      FROM (
-        SELECT month, year, decimal_hours AS hours, day_pay AS pay
-        FROM time_entries
-        WHERE emp_name = ?
-        UNION ALL
-        SELECT month, year, 0 AS hours, amount_paid AS pay
-        FROM admin_notes
-        WHERE emp_name = ?
-      )
-      GROUP BY year, month
-      ORDER BY CAST(year AS INTEGER) ASC, CAST(month AS INTEGER) ASC
-      `,
-      [normalizeText(employeeName), normalizeText(employeeName)]
+    const name = normalizeText(employeeName);
+
+    // Hours always come from the actual clocked time entries. Pay is a
+    // different story: once a month has Notes payments logged, that total
+    // already covers everything paid for the whole month, so it takes
+    // priority over day_pay for that month. Falling back to summing
+    // day_pay only applies to months with no Notes at all (e.g. the
+    // earliest months before the Notes ledger was used) — otherwise,
+    // editing a single day's time entry (which recalculates its day_pay)
+    // would silently add on top of an already-complete Notes total.
+    const hoursRows = await db.all(
+      `SELECT month, year, SUM(decimal_hours) AS totalHours
+       FROM time_entries WHERE emp_name = ? GROUP BY year, month`,
+      [name]
     );
+
+    const dayPayRows = await db.all(
+      `SELECT month, year, SUM(day_pay) AS dayPaySum
+       FROM time_entries WHERE emp_name = ? GROUP BY year, month`,
+      [name]
+    );
+
+    const notesRows = await db.all(
+      `SELECT month, year, SUM(amount_paid) AS notesSum, COUNT(*) AS noteCount
+       FROM admin_notes WHERE emp_name = ? GROUP BY year, month`,
+      [name]
+    );
+
+    const dayPayByKey = new Map(dayPayRows.map((r) => [`${r.year}-${r.month}`, r.dayPaySum]));
+    const notesByKey = new Map(notesRows.map((r) => [`${r.year}-${r.month}`, r]));
+
+    const rows = hoursRows.map((r) => {
+      const key = `${r.year}-${r.month}`;
+      const notes = notesByKey.get(key);
+      const totalPay = notes && notes.noteCount > 0 ? notes.notesSum : (dayPayByKey.get(key) || 0);
+      return { month: r.month, year: r.year, totalHours: r.totalHours, totalPay };
+    });
+
+    rows.sort((a, b) => Number(a.year) - Number(b.year) || Number(a.month) - Number(b.month));
 
     res.json(rows);
   } catch (error) {
