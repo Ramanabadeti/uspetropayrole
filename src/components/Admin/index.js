@@ -48,6 +48,18 @@ const Admin = () => {
   const [editClockOutTime, setEditClockOutTime] = useState("");
   const [editReason, setEditReason] = useState("");
 
+  const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+  const emptyEmployeeForm = { no: "", name: "", password: "", role: "employee", mailID: "" };
+  const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
+
+  const loadEmployees = () => {
+    fetch("/api/employees")
+      .then((res) => res.json())
+      .then((data) => setEmployees(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Failed to load employees", err));
+  };
+
   useEffect(() => {
     fetch("/api/emails")
       .then((res) => res.json())
@@ -62,11 +74,55 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    fetch("/api/employees")
-      .then((res) => res.json())
-      .then((data) => setEmployees(data))
-      .catch((err) => console.error("Failed to load employees", err));
+    loadEmployees();
   }, []);
+
+  const startAddEmployee = () => {
+    setEditingEmployeeId(null);
+    setEmployeeForm(emptyEmployeeForm);
+  };
+
+  const startEditEmployee = (emp) => {
+    setEditingEmployeeId(emp.id);
+    setEmployeeForm({
+      no: emp.no ?? "",
+      name: emp.name ?? "",
+      password: emp.password ?? "",
+      role: emp.role ?? "employee",
+      mailID: emp.mailID ?? "",
+    });
+  };
+
+  const saveEmployee = async () => {
+    if (!employeeForm.name || !employeeForm.password) {
+      alert("Name and password are required.");
+      return;
+    }
+
+    const isEditing = editingEmployeeId !== null;
+    const url = isEditing ? `/api/employees/${editingEmployeeId}` : "/api/employees";
+
+    try {
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(employeeForm),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save employee");
+      }
+
+      alert(isEditing ? "Employee updated successfully" : "Employee added successfully");
+      setEditingEmployeeId(null);
+      setEmployeeForm(emptyEmployeeForm);
+      loadEmployees();
+    } catch (error) {
+      alert(error.message || "Failed to save employee");
+    }
+  };
 
   const handleSearch = async () => {
     setEntries([]);
@@ -608,6 +664,99 @@ const Admin = () => {
             ))}
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: "40px" }}>
+        <button
+          onClick={() => {
+            setShowEmployeeDetails((prev) => !prev);
+            if (!showEmployeeDetails) startAddEmployee();
+          }}
+        >
+          {showEmployeeDetails ? "Hide" : "View"} Employee Details
+        </button>
+
+        {showEmployeeDetails && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "20px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+            }}
+          >
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>NO</th>
+                  <th>NAME</th>
+                  <th>PASSWORD</th>
+                  <th>ROLE</th>
+                  <th>EMAIL</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => (
+                  <tr key={emp.id}>
+                    <td>{emp.no}</td>
+                    <td>{emp.name}</td>
+                    <td>{emp.password}</td>
+                    <td>{emp.role}</td>
+                    <td>{emp.mailID}</td>
+                    <td>
+                      <button onClick={() => startEditEmployee(emp)}>Edit</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3 style={{ marginTop: "30px" }}>
+              {editingEmployeeId !== null ? "Edit Employee" : "Add New Employee"}
+            </h3>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="number"
+                placeholder="No"
+                style={{ width: "60px" }}
+                value={employeeForm.no}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, no: e.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="Name"
+                value={employeeForm.name}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, name: e.target.value }))}
+              />
+              <input
+                type="text"
+                placeholder="Password"
+                value={employeeForm.password}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, password: e.target.value }))}
+              />
+              <select
+                value={employeeForm.role}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, role: e.target.value }))}
+              >
+                <option value="employee">employee</option>
+                <option value="admin">admin</option>
+              </select>
+              <input
+                type="email"
+                placeholder="Email"
+                value={employeeForm.mailID}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, mailID: e.target.value }))}
+              />
+              <button onClick={saveEmployee}>
+                {editingEmployeeId !== null ? "Save Changes" : "Add Employee"}
+              </button>
+              {editingEmployeeId !== null && (
+                <button onClick={startAddEmployee}>Cancel</button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ const cors = require('cors');
 const fs = require('fs');
 const XLSX = require('xlsx'); 
 const path = require('path');
-const importEmployeesFromExcel = require('./importEmployees');
 
 const app = express();
 const connectDB = require('./db');
@@ -144,6 +143,7 @@ app.get("/api/employees", async (req, res) => {
 
     const employees = await db.all(`
       SELECT
+        id,
         emp_no AS no,
         name,
         password,
@@ -157,6 +157,74 @@ app.get("/api/employees", async (req, res) => {
   } catch (err) {
     console.error("Error fetching employees from DB:", err);
     res.status(500).json({ error: "Failed to fetch employees" });
+  }
+});
+
+app.post("/api/employees", async (req, res) => {
+  try {
+    const { no, name, password, role, mailID } = req.body;
+
+    if (!normalizeText(name) || !normalizeText(password)) {
+      return res.status(400).json({ error: "Name and password are required" });
+    }
+
+    const db = await connectDB();
+
+    const result = await db.run(
+      `
+      INSERT INTO employees (emp_no, name, password, role, mail_id, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `,
+      [
+        no || null,
+        normalizeText(name),
+        normalizeText(password),
+        normalizeText(role) || "employee",
+        normalizeText(mailID),
+      ]
+    );
+
+    res.status(201).json({ message: "Employee added successfully", id: result.lastID });
+  } catch (err) {
+    if (String(err.message).includes("UNIQUE")) {
+      return res.status(409).json({ error: "An employee with that name already exists" });
+    }
+    console.error("Error adding employee:", err);
+    res.status(500).json({ error: "Failed to add employee" });
+  }
+});
+
+app.put("/api/employees/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { no, name, password, role, mailID } = req.body;
+
+    if (!normalizeText(name) || !normalizeText(password)) {
+      return res.status(400).json({ error: "Name and password are required" });
+    }
+
+    const db = await connectDB();
+
+    const result = await db.run(
+      `
+      UPDATE employees
+      SET emp_no = ?, name = ?, password = ?, role = ?, mail_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [no || null, normalizeText(name), normalizeText(password), normalizeText(role) || "employee", normalizeText(mailID), id]
+    );
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    res.json({ message: "Employee updated successfully" });
+  } catch (err) {
+    if (String(err.message).includes("UNIQUE")) {
+      return res.status(409).json({ error: "An employee with that name already exists" });
+    }
+    console.error("Error updating employee:", err);
+    res.status(500).json({ error: "Failed to update employee" });
   }
 });
 
@@ -746,10 +814,12 @@ if (fs.existsSync(buildPath)) {
 
 const PORT = process.env.PORT || 5050;
 
+// Employees now live in the database and are managed from the Admin UI —
+// blank pay sheet.xlsx is only read once by `npm run migrate-legacy` for
+// the initial historical import, never re-synced on every server start
+// (that would silently overwrite employees added/edited through the app).
 initDB()
   .then(async () => {
-    await importEmployeesFromExcel();
-
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
