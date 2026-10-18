@@ -270,7 +270,15 @@ const Admin = () => {
     pdf.setFontSize(11);
     pdf.text(`Employee: ${selectedEmployee}`, 14, 27);
     pdf.text(`Pay Period: ${monthName} ${selectedYear}`, 14, 33);
-    pdf.text(`Pay Rate: $${Number(payRate || 0).toFixed(2)}/hr`, 14, 39);
+    // Saying "$0.00/hr" when the box is empty would be worse than saying
+    // nothing — the rows below are priced per entry in that case.
+    pdf.text(
+      displayRate
+        ? `Pay Rate: $${displayRate.toFixed(2)}/hr`
+        : "Pay Rate: as recorded per day",
+      14,
+      39
+    );
     pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 45);
 
     autoTable(pdf, {
@@ -377,12 +385,31 @@ const Admin = () => {
     }
   };
 
-  // Each day is shown at the rate it is actually stored at, not at whatever
-  // is in the Pay Rate box. The box used to win here, so the on-screen total
-  // could disagree with what the database held.
+  // Day pay shown on screen is worked out here, from the hours on each entry
+  // and the rate in the Pay Rate box.
+  //
+  // This is deliberate, because the stored day_pay is useless for most of
+  // this data: 615 of the 628 entries came from the Excel import, which
+  // hardcoded hourly_rate to 0 and only found a pay column in 13 rows, so
+  // reading the stored figure shows $0.00 for almost every historical day.
+  // Typing the rate that applied gives a real number for all of them.
+  //
+  // It is a projection, not a correction. Nothing here is written back, and
+  // an entry's stored rate only changes when an admin deliberately ticks
+  // "Also change this day's pay rate" in the edit form. Letting this box
+  // reach the database is what repriced entry 626 from $15/hr to $13/hr
+  // behind the scenes.
+  const displayRate = Number(payRate) > 0 ? Number(payRate) : null;
+
   const allPay = useMemo(
-    () => entries.map((entry) => Number(entry.dayPay || 0).toFixed(2)),
-    [entries]
+    () =>
+      entries.map((entry) => {
+        // The typed rate applies to every row; with the box empty each day
+        // falls back to whatever it is actually priced at.
+        const rate = displayRate ?? Number(entry.hourlyRate || 0);
+        return (Number(entry.decimalHours || 0) * rate).toFixed(2);
+      }),
+    [entries, displayRate]
   );
 
   const totalHours = useMemo(() => {
@@ -473,8 +500,8 @@ const Admin = () => {
           ))}
         </select>
 
-        <label title="Printed on the PDF header. Does not change what any entry is paid at.">
-          PDF Pay Rate ($/hr):
+        <label title="Used to work out the pay shown below and on the PDF. Does not change any stored entry.">
+          Pay Rate ($/hr):
         </label>
         <input
           type="number"
@@ -488,6 +515,14 @@ const Admin = () => {
 
         <button onClick={handleSearch}>Search</button>
       </div>
+
+      {entries.length > 0 && (
+        <p className="pay-projection-note">
+          {displayRate
+            ? `Day pay below is hours \u00d7 $${displayRate.toFixed(2)}/hr. Changing the rate here updates the figures on screen and on the PDF; it does not change any saved entry.`
+            : "No rate entered, so each day is shown at its own saved rate. Most imported entries have no saved rate, which is why they read $0.00 \u2014 type the rate that applied above."}
+        </p>
+      )}
 
       <div className="employee-logs">
   <table className="admin-table">
