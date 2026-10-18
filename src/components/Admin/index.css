@@ -97,3 +97,52 @@
     padding: 6px 12px;
   }
 }
+.admin-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid #f5c2c2;
+  border-radius: 4px;
+  background: #fde8e8;
+  color: #b3261e;
+  font-size: 14px;
+}
+
+.admin-error button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* The rate override on the edit form is deliberately a separate, opt-in row:
+   an edit that was only meant to fix a clock-out time must not reprice the
+   day as a side effect. */
+.edit-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #d0d0d0;
+  font-size: 14px;
+}
+
+.edit-rate-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.edit-rate-hint {
+  color: #666;
+  font-size: 13px;
+}

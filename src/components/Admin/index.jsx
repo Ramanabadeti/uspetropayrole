@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import StatsChart from "./StatsChart";
+import api, { ApiError } from "../../api";
+import { useAuth } from "../../auth";
 import "./index.css";
 
 const MONTH_NAMES = [
@@ -24,6 +27,9 @@ const formatMDY = (isoDate) => {
 };
 
 const Admin = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [error, setError] = useState("");
   const [entries, setEntries] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -47,35 +53,57 @@ const Admin = () => {
   const [editClockOutDate, setEditClockOutDate] = useState("");
   const [editClockOutTime, setEditClockOutTime] = useState("");
   const [editReason, setEditReason] = useState("");
+  const [overrideRate, setOverrideRate] = useState(false);
+  const [editHourlyRate, setEditHourlyRate] = useState("");
 
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
-  const emptyEmployeeForm = { no: "", name: "", password: "", role: "employee", mailID: "" };
+  const emptyEmployeeForm = {
+    no: "",
+    name: "",
+    password: "",
+    role: "employee",
+    mailID: "",
+    hourlyRate: "",
+    active: true,
+  };
   const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
 
-  const loadEmployees = () => {
-    fetch("/api/employees")
-      .then((res) => res.json())
-      .then((data) => setEmployees(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Failed to load employees", err));
-  };
+  // A 401 means the session lapsed, which should put the admin back on the
+  // login screen rather than leaving a page of empty tables with an error in
+  // the console.
+  const handleError = useCallback(
+    (err) => {
+      if (err instanceof ApiError && err.isAuthError) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      const detail = err.details?.map((d) => `${d.field}: ${d.message}`).join("; ");
+      setError(detail ? `${err.message} (${detail})` : err.message || "Something went wrong");
+    },
+    [navigate]
+  );
+
+  const loadEmployees = useCallback(async () => {
+    try {
+      setEmployees(await api.employees());
+    } catch (err) {
+      handleError(err);
+    }
+  }, [handleError]);
 
   useEffect(() => {
-    fetch("/api/emails")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setEmailList(data);
-        } else {
-          console.error("Email list is not an array:", data);
-        }
-      })
-      .catch((err) => console.error("Failed to fetch email list:", err));
+    // The legacy workbook is optional — a missing PUNCHWAY_DATA_DIR should
+    // not stop the rest of the admin page from working.
+    api
+      .emails()
+      .then(setEmailList)
+      .catch(() => setEmailList([]));
   }, []);
 
   useEffect(() => {
     loadEmployees();
-  }, []);
+  }, [loadEmployees]);
 
   const startAddEmployee = () => {
     setEditingEmployeeId(null);
@@ -87,40 +115,46 @@ const Admin = () => {
     setEmployeeForm({
       no: emp.no ?? "",
       name: emp.name ?? "",
-      password: emp.password ?? "",
+      // The roster no longer carries passwords at all, so there is nothing to
+      // prefill — blank means "leave it unchanged".
+      password: "",
       role: emp.role ?? "employee",
       mailID: emp.mailID ?? "",
+      hourlyRate: emp.hourlyRate ?? "",
+      active: emp.active === undefined ? true : !!emp.active,
     });
   };
 
   const saveEmployee = async () => {
-    if (!employeeForm.name || !employeeForm.password) {
-      alert("Name and password are required.");
+    setError("");
+    const isEditing = editingEmployeeId !== null;
+
+    if (!employeeForm.name) {
+      setError("Name is required.");
+      return;
+    }
+    // Only a new employee must have a password — editing a mail address or a
+    // rate no longer forces the admin to retype one.
+    if (!isEditing && !employeeForm.password) {
+      setError("A password is required for a new employee.");
       return;
     }
 
-    const isEditing = editingEmployeeId !== null;
-    const url = isEditing ? `/api/employees/${editingEmployeeId}` : "/api/employees";
+    const payload = { ...employeeForm };
+    if (!payload.password) delete payload.password;
+    if (payload.hourlyRate === "") payload.hourlyRate = 0;
 
     try {
-      const response = await fetch(url, {
-        method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(employeeForm),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to save employee");
+      if (isEditing) {
+        await api.updateEmployee(editingEmployeeId, payload);
+      } else {
+        await api.createEmployee(payload);
       }
-
-      alert(isEditing ? "Employee updated successfully" : "Employee added successfully");
       setEditingEmployeeId(null);
       setEmployeeForm(emptyEmployeeForm);
-      loadEmployees();
-    } catch (error) {
-      alert(error.message || "Failed to save employee");
+      await loadEmployees();
+    } catch (err) {
+      handleError(err);
     }
   };
 
@@ -131,57 +165,35 @@ const Admin = () => {
     setPaid([]);
     setMonthlyStats([]);
 
-    if (!selectedEmployee || !selectedMonth || !selectedYear || !payRate) {
-      alert("Please select employee, month, year, and enter pay rate.");
+    setError("");
+
+    // The pay rate box is no longer required to search: it is a display
+    // override for the PDF, not the rate the entries are priced at.
+    if (!selectedEmployee || !selectedMonth || !selectedYear) {
+      setError("Please select an employee, month and year.");
       return;
     }
 
-    fetch(
-      `/api/employee-stats?employeeName=${encodeURIComponent(
-        selectedEmployee
-      )}`
-    )
-      .then((res) => res.json())
-      .then((data) => setMonthlyStats(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Failed to load employee stats:", err));
+    const period = {
+      employeeName: selectedEmployee,
+      month: String(selectedMonth),
+      year: String(selectedYear),
+    };
 
     try {
-      const response = await fetch("/api/employee-logs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          employeeName: selectedEmployee,
-          month: String(selectedMonth),
-          year: String(selectedYear)
-        })
-      });
+      const [logs, notes, stats] = await Promise.all([
+        api.employeeLogs(period),
+        api.adminNotes(period),
+        api.employeeStats(selectedEmployee),
+      ]);
 
-      const data = await response.json();
-
-      const validData = Array.isArray(data) ? data : [];
-      setEntries(validData);
-
-      fetch(
-        `/api/admin-notes?employeeName=${encodeURIComponent(
-          selectedEmployee
-        )}&month=${encodeURIComponent(selectedMonth)}&year=${encodeURIComponent(
-          selectedYear
-        )}`
-      )
-        .then((res) => res.json())
-        .then((noteData) => {
-          const validNotes = Array.isArray(noteData) ? noteData : [];
-          setNoteDate(validNotes.map((d) => d.noteDate));
-          setNote(validNotes.map((d) => d.note));
-          setPaid(validNotes.map((d) => parseFloat(d.amountPaid) || 0));
-        })
-        .catch((err) => {
-          console.error("Failed to load notes:", err);
-        });
+      setEntries(logs);
+      setNoteDate(notes.map((d) => d.noteDate));
+      setNote(notes.map((d) => d.note));
+      setPaid(notes.map((d) => parseFloat(d.amountPaid) || 0));
+      setMonthlyStats(stats);
     } catch (err) {
-      console.error("Failed to load logs:", err);
+      handleError(err);
     }
   };
 
@@ -192,6 +204,10 @@ const Admin = () => {
     setEditClockOutDate(entry.clockOutDate || "");
     setEditClockOutTime(entry.clockOutTime || "");
     setEditReason("");
+    // Shows the rate this entry is actually priced at, which is not
+    // necessarily the rate in the filter box above it.
+    setEditHourlyRate(String(entry.hourlyRate ?? ""));
+    setOverrideRate(false);
     setIsEditOpen(true);
   };
 
@@ -202,44 +218,45 @@ const Admin = () => {
     setEditClockOutDate("");
     setEditClockOutTime("");
     setEditReason("");
+    setEditHourlyRate("");
+    setOverrideRate(false);
     setIsEditOpen(false);
   };
 
   const saveEditedEntry = async () => {
     if (!selectedEntry) return;
+    setError("");
+
+    if (!editReason.trim()) {
+      setError("Please say why this entry is being corrected.");
+      return;
+    }
+
+    // The rate is only sent when the admin deliberately ticked the override.
+    // Previously this request always carried `payRate` from the filter box at
+    // the top of the page, so correcting a clock-out time silently repriced
+    // the day at whatever happened to be typed up there — entry 626 went
+    // $113.70 -> $410.54 -> $98.54 across an edit and its exact reversal,
+    // because the rate drifted 15 -> 13 while the hours came back to where
+    // they started. Omitting it means "keep this entry's own rate".
+    const patch = {
+      clockInDate: editClockInDate,
+      clockInTime: editClockInTime,
+      clockOutDate: editClockOutDate,
+      clockOutTime: editClockOutTime,
+      editReason: editReason.trim(),
+    };
+
+    if (overrideRate) {
+      patch.hourlyRate = Number(editHourlyRate || 0);
+    }
 
     try {
-      const response = await fetch(
-        `/api/time-entry/${selectedEntry.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            clockInDate: editClockInDate,
-            clockInTime: editClockInTime,
-            clockOutDate: editClockOutDate,
-            clockOutTime: editClockOutTime,
-            hourlyRate: Number(payRate || selectedEntry.hourlyRate || 0),
-            editReason,
-            editedBy: "admin"
-          })
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update entry");
-      }
-
-      alert("Time entry updated successfully");
+      await api.updateTimeEntry(selectedEntry.id, patch);
       closeEditForm();
-      handleSearch();
-    } catch (error) {
-      console.error("Error updating entry:", error);
-      alert(error.message || "Failed to update entry");
+      await handleSearch();
+    } catch (err) {
+      handleError(err);
     }
   };
 
@@ -322,56 +339,51 @@ const Admin = () => {
     window.open(mailtoURL, "_blank");
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("logInUser");
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
-  const handleSubmitNote = () => {
+  const handleSubmitNote = async () => {
+    setError("");
+
     if (!selectedEmployee || !selectedMonth || !selectedYear) {
-      alert("Search for an employee, month, and year above before submitting a payment.");
+      setError("Search for an employee, month and year above before submitting a payment.");
       return;
     }
 
     if (!noteDateInput || !amountPaidInput) {
-      alert("Please enter date and amount paid.");
+      setError("Please enter a date and an amount paid.");
       return;
     }
 
-    fetch("/api/admin-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await api.createAdminNote({
         empName: selectedEmployee,
         noteDate: noteDateInput,
         note: noteInput,
         amountPaid: amountPaidInput,
         amountPending: 0,
-        month: selectedMonth,
-        year: selectedYear
-      }),
-    })
-      .then((res) => res.json())
-      .then(() => {
-        alert("Note saved successfully");
-        setNoteDateInput(todayIsoDate());
-        setNoteInput("");
-        setAmountPaidInput("");
-        handleSearch();
-      })
-      .catch((err) => {
-        console.error("Error saving note:", err);
-        alert("Failed to save note.");
+        month: String(selectedMonth),
+        year: String(selectedYear),
       });
+
+      setNoteDateInput(todayIsoDate());
+      setNoteInput("");
+      setAmountPaidInput("");
+      await handleSearch();
+    } catch (err) {
+      handleError(err);
+    }
   };
 
-  const allPay = useMemo(() => {
-    return entries.map((entry) => {
-      const rate = Number(payRate || entry.hourlyRate || 0);
-      const hours = Number(entry.decimalHours || 0);
-      return (hours * rate).toFixed(2);
-    });
-  }, [entries, payRate]);
+  // Each day is shown at the rate it is actually stored at, not at whatever
+  // is in the Pay Rate box. The box used to win here, so the on-screen total
+  // could disagree with what the database held.
+  const allPay = useMemo(
+    () => entries.map((entry) => Number(entry.dayPay || 0).toFixed(2)),
+    [entries]
+  );
 
   const totalHours = useMemo(() => {
     return entries.reduce((sum, entry) => sum + Number(entry.decimalHours || 0), 0);
@@ -391,6 +403,14 @@ const Admin = () => {
 
   return (
     <div style={{ padding: "20px" }}>
+      {error && (
+        <div className="admin-error" role="alert">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError("")} aria-label="Dismiss">
+            &times;
+          </button>
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -453,14 +473,17 @@ const Admin = () => {
           ))}
         </select>
 
-        <label>Pay Rate ($/hr):</label>
+        <label title="Printed on the PDF header. Does not change what any entry is paid at.">
+          PDF Pay Rate ($/hr):
+        </label>
         <input
           type="number"
+          min="0"
+          step="0.01"
           value={payRate}
           onChange={(e) => setPayRate(e.target.value)}
           style={{ width: "80px" }}
           placeholder="Rate"
-          required
         />
 
         <button onClick={handleSearch}>Search</button>
@@ -595,11 +618,37 @@ const Admin = () => {
 
             <input
               type="text"
-              placeholder="Reason for edit"
+              placeholder="Reason for edit (required)"
               value={editReason}
               onChange={(e) => setEditReason(e.target.value)}
               style={{ minWidth: "250px" }}
+              required
             />
+          </div>
+
+          <div className="edit-rate-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={overrideRate}
+                onChange={(e) => setOverrideRate(e.target.checked)}
+              />
+              Also change this day&apos;s pay rate
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={editHourlyRate}
+              onChange={(e) => setEditHourlyRate(e.target.value)}
+              disabled={!overrideRate}
+              style={{ width: "90px" }}
+            />
+            <span className="edit-rate-hint">
+              {overrideRate
+                ? "This day will be repriced at the rate above."
+                : `Keeping $${Number(selectedEntry?.hourlyRate || 0).toFixed(2)}/hr.`}
+            </span>
           </div>
 
           <div style={{ marginTop: "10px" }}>
@@ -690,9 +739,10 @@ const Admin = () => {
                 <tr>
                   <th>NO</th>
                   <th>NAME</th>
-                  <th>PASSWORD</th>
+                  <th>RATE</th>
                   <th>ROLE</th>
                   <th>EMAIL</th>
+                  <th>STATUS</th>
                   <th>ACTION</th>
                 </tr>
               </thead>
@@ -701,9 +751,12 @@ const Admin = () => {
                   <tr key={emp.id}>
                     <td>{emp.no}</td>
                     <td>{emp.name}</td>
-                    <td>{emp.password}</td>
+                    {/* This column used to print everyone's plaintext
+                        password onto the admin screen. */}
+                    <td>${Number(emp.hourlyRate || 0).toFixed(2)}</td>
                     <td>{emp.role}</td>
                     <td>{emp.mailID}</td>
+                    <td>{emp.active ? "active" : "inactive"}</td>
                     <td>
                       <button onClick={() => startEditEmployee(emp)}>Edit</button>
                     </td>
@@ -730,8 +783,11 @@ const Admin = () => {
                 onChange={(e) => setEmployeeForm((f) => ({ ...f, name: e.target.value }))}
               />
               <input
-                type="text"
-                placeholder="Password"
+                type="password"
+                placeholder={
+                  editingEmployeeId !== null ? "New password (leave blank to keep)" : "Password"
+                }
+                autoComplete="new-password"
                 value={employeeForm.password}
                 onChange={(e) => setEmployeeForm((f) => ({ ...f, password: e.target.value }))}
               />
@@ -748,6 +804,26 @@ const Admin = () => {
                 value={employeeForm.mailID}
                 onChange={(e) => setEmployeeForm((f) => ({ ...f, mailID: e.target.value }))}
               />
+              {/* The rate lives on the employee now. It was a hardcoded 15 in
+                  the employee screen, so nobody could ever be paid anything
+                  else without an admin editing each day by hand. */}
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="$/hr"
+                style={{ width: "80px" }}
+                value={employeeForm.hourlyRate}
+                onChange={(e) => setEmployeeForm((f) => ({ ...f, hourlyRate: e.target.value }))}
+              />
+              <label title="An inactive employee cannot sign in; their history is kept.">
+                <input
+                  type="checkbox"
+                  checked={!!employeeForm.active}
+                  onChange={(e) => setEmployeeForm((f) => ({ ...f, active: e.target.checked }))}
+                />
+                Active
+              </label>
               <button onClick={saveEmployee}>
                 {editingEmployeeId !== null ? "Save Changes" : "Add Employee"}
               </button>
