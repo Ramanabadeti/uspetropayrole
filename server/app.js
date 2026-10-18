@@ -49,7 +49,10 @@ function createApp({ serveFrontend = true } = {}) {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          // The login and showcase screens pull Playfair Display from Google
+          // Fonts; a bare 'self' here silently drops the app's typography.
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:"],
           connectSrc: ["'self'", ...CORS_ORIGINS],
           objectSrc: ["'none'"],
@@ -62,18 +65,28 @@ function createApp({ serveFrontend = true } = {}) {
   );
 
   app.use(
-    cors({
-      origin(origin, callback) {
-        // Same-origin and non-browser callers send no Origin header.
-        if (!origin) return callback(null, true);
-        if (CORS_ORIGINS.includes(origin)) return callback(null, true);
-        callback(new Error(`Origin ${origin} is not allowed`));
-      },
-      // Sessions travel in a cookie now, so the browser has to be told it may
-      // send them cross-origin during local Vite development.
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type"],
+    // The delegate form, because deciding this needs the request: the browser
+    // sends an Origin header for the app's own origin too, and rejecting that
+    // turned every stylesheet and script fetch into a 500.
+    cors((req, callback) => {
+      const origin = req.headers.origin;
+      const host = req.headers.host;
+
+      // Non-browser callers (curl, the healthcheck) send no Origin at all.
+      const sameOrigin = !!origin && !!host && origin.replace(/^https?:\/\//, "") === host;
+      const allowed = !origin || sameOrigin || CORS_ORIGINS.includes(origin);
+
+      // A disallowed origin gets a response without CORS headers, which the
+      // browser then refuses to read. Throwing here would turn someone else's
+      // stray request into a 500 in our own logs.
+      callback(null, {
+        origin: allowed,
+        // Sessions travel in a cookie now, so the browser has to be told it
+        // may send them during local Vite development.
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type"],
+      });
     })
   );
 
