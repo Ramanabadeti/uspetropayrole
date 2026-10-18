@@ -9,6 +9,10 @@ if errorlevel 1 (
 )
 
 echo.
+echo Backing up the database before anything else...
+call npm run backup
+
+echo.
 echo Installing any new dependencies...
 call npm install
 
@@ -18,6 +22,7 @@ call npm run build
 
 echo.
 echo Update complete. Starting the server...
+echo Any pending database migrations are applied automatically on startup.
 echo If it is already running in another window, close that window first.
 echo Press Ctrl+C here to stop the app.
 echo.

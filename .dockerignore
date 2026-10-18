@@ -1,0 +1,17 @@
+node_modules
+build
+.git
+.github
+backups
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+.session-secret.dev
+clockInData.json
+postman
+.postman
+*.log
+.DS_Store
