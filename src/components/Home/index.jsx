@@ -10,6 +10,10 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+// A punch is dead for this long afterwards, so a double click or an
+// impatient second press cannot file two entries for one shift.
+const CLOCK_COOLDOWN_SECONDS = 6;
+
 /**
  * The employee's own timesheet and clock.
  *
@@ -30,6 +34,10 @@ function EmployeeHome({ empName }) {
   const [entries, setEntries] = useState([]);
   const [active, setActive] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Seconds the clock button stays dead after a punch. A second click while
+  // the first was still in flight is how an employee ends up with two
+  // entries for one shift, and the fix has to outlast the request itself.
+  const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -73,6 +81,12 @@ function EmployeeHome({ empName }) {
     loadEntries();
   }, [loadEntries]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setTimeout(() => setCooldown((left) => left - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   const onClockIn = async () => {
     setBusy(true);
     setError("");
@@ -85,6 +99,7 @@ function EmployeeHome({ empName }) {
       handleError(err);
     } finally {
       setBusy(false);
+      setCooldown(CLOCK_COOLDOWN_SECONDS);
     }
   };
 
@@ -101,6 +116,7 @@ function EmployeeHome({ empName }) {
       handleError(err);
     } finally {
       setBusy(false);
+      setCooldown(CLOCK_COOLDOWN_SECONDS);
     }
   };
 
@@ -137,12 +153,20 @@ function EmployeeHome({ empName }) {
       {notice && <p className="employee-notice">{notice}</p>}
 
       {active ? (
-        <button className="clock-out" onClick={onClockOut} disabled={busy}>
-          {busy ? "Working…" : "Clock Out"}
+        <button
+          className="clock-out"
+          onClick={onClockOut}
+          disabled={busy || cooldown > 0}
+        >
+          {busy ? "Working…" : cooldown > 0 ? `Please wait… ${cooldown}s` : "Clock Out"}
         </button>
       ) : (
-        <button className="clock-in" onClick={onClockIn} disabled={busy}>
-          {busy ? "Working…" : "Clock In"}
+        <button
+          className="clock-in"
+          onClick={onClockIn}
+          disabled={busy || cooldown > 0}
+        >
+          {busy ? "Working…" : cooldown > 0 ? `Please wait… ${cooldown}s` : "Clock In"}
         </button>
       )}
 
