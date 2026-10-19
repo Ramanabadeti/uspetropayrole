@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -45,6 +45,11 @@ const Admin = () => {
   const [emailList, setEmailList] = useState([]);
   const [monthlyStats, setMonthlyStats] = useState([]);
   const [statsRange, setStatsRange] = useState("12");
+
+  // The floating Print button gets out of the way while the chart is on
+  // screen, so it never sits on top of the graph.
+  const chartSectionRef = useRef(null);
+  const [isChartOnScreen, setIsChartOnScreen] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -321,6 +326,23 @@ const Admin = () => {
     return pdf;
   };
 
+  useEffect(() => {
+    const section = chartSectionRef.current;
+    if (!section) {
+      setIsChartOnScreen(false);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsChartOnScreen(entry.isIntersecting),
+      // Any sliver of the chart in view is enough to stand down; the button
+      // is meant to clear the graph entirely, not overlap its edge.
+      { threshold: 0 }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [selectedEmployee, monthlyStats.length]);
+
   const handlePrint = () => {
     if (entries.length === 0) {
       alert("Search for an employee's entries before printing.");
@@ -466,16 +488,30 @@ const Admin = () => {
         }}
       >
         <h2>Admin Page</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span>Admin</span>
-          <button style={{ margin: 0 }} onClick={handlePrint}>
-            Print
-          </button>
-          <button style={{ margin: 0 }} onClick={handleLogout}>
-            Logout
-          </button>
+        <div>
+          <span style={{ marginRight: "10px" }}>Admin</span>
+          <button onClick={handleLogout}>Logout</button>
         </div>
       </div>
+
+      <button
+        onClick={handlePrint}
+        aria-hidden={isChartOnScreen}
+        style={{
+          position: "fixed",
+          top: "90px",
+          right: "24px",
+          zIndex: 100,
+          margin: 0,
+          opacity: isChartOnScreen ? 0 : 1,
+          visibility: isChartOnScreen ? "hidden" : "visible",
+          pointerEvents: isChartOnScreen ? "none" : "auto",
+          transition: "opacity 0.2s ease, visibility 0.2s ease",
+          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.25)",
+        }}
+      >
+        Print
+      </button>
 
       <div
         style={{
@@ -599,6 +635,7 @@ const Admin = () => {
 
       {selectedEmployee && monthlyStats.length > 0 && (
         <div
+          ref={chartSectionRef}
           style={{
             marginTop: "30px",
             padding: "20px",
