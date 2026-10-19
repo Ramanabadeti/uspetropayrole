@@ -43,7 +43,8 @@
     "hash-passwords": "node scripts/hashPasswords.js",
     "backup": "node scripts/backupDb.js",
     "test": "node --test \"tests/**/*.test.js\"",
-    "test:watch": "node --test --watch \"tests/**/*.test.js\""
+    "test:watch": "node --test --watch \"tests/**/*.test.js\"",
+    "data-check": "node scripts/dataCheck.js"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
