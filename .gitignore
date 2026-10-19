@@ -26,3 +26,9 @@ clockInData.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# database backups — local machine data, never sync via git
+/backups
+*.db-wal
+*.db-shm
+.session-secret.dev

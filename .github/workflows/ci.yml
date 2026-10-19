@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    name: Tests and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Proves the migrations apply cleanly to an empty database, which is
+      # what a brand-new machine does on first boot.
+      - name: Migrate a fresh database
+        run: npm run migrate
+        env:
+          DB_PATH: ${{ runner.temp }}/ci.db
+          BACKUP_DIR: ${{ runner.temp }}/backups
+
+      - run: npm test
+
+      - run: npm run build
+
+      - name: Check the server boots and reports healthy
+        run: |
+          node server/index.js &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5050/api/health; then
+              echo "\nServer is healthy"
+              kill $SERVER_PID
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server never became healthy"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        env:
+          PORT: 5050
+          DB_PATH: ${{ runner.temp }}/smoke.db
+          BACKUP_DIR: ${{ runner.temp }}/backups
+          SESSION_SECRET: ci-only-secret
+          NODE_ENV: production
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: punchway-payroll:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
