@@ -321,6 +321,26 @@ const Admin = () => {
     return pdf;
   };
 
+  const handlePrint = () => {
+    if (entries.length === 0) {
+      alert("Search for an employee's entries before printing.");
+      return;
+    }
+
+    // Same document the email goes out with, so a printed statement and an
+    // emailed one can never disagree.
+    const pdf = buildPayrollPdf();
+    pdf.autoPrint();
+
+    const printWindow = window.open(pdf.output("bloburl"), "_blank");
+    if (!printWindow) {
+      // Pop-up blocked: hand over the identical file instead of silently
+      // doing nothing.
+      const today = new Date().toISOString().split("T")[0];
+      pdf.save(`${selectedEmployee}_payroll_${today}.pdf`);
+    }
+  };
+
   const handleSendMail = async () => {
     if (!Array.isArray(emailList)) {
       alert("Email list is not loaded correctly.");
@@ -446,9 +466,14 @@ const Admin = () => {
         }}
       >
         <h2>Admin Page</h2>
-        <div>
-          <span style={{ marginRight: "10px" }}>Admin</span>
-          <button onClick={handleLogout}>Logout</button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span>Admin</span>
+          <button style={{ margin: 0 }} onClick={handlePrint}>
+            Print
+          </button>
+          <button style={{ margin: 0 }} onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
 
