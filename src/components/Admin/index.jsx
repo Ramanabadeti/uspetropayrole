@@ -577,14 +577,6 @@ const Admin = () => {
         <button onClick={handleSearch}>Search</button>
       </div>
 
-      {entries.length > 0 && (
-        <p className="pay-projection-note">
-          {displayRate
-            ? `Day pay below is hours \u00d7 $${displayRate.toFixed(2)}/hr. Changing the rate here updates the figures on screen and on the PDF; it does not change any saved entry.`
-            : "No rate entered, so each day is shown at its own saved rate. Most imported entries have no saved rate, which is why they read $0.00 \u2014 type the rate that applied above."}
-        </p>
-      )}
-
       <div className="employee-logs">
   <table className="admin-table">
     <thead>

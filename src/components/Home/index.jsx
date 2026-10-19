@@ -129,7 +129,6 @@ function EmployeeHome({ empName }) {
 
       <div>
         <h3>{empName}</h3>
-        {user?.hourlyRate ? <p className="pay-rate">Pay rate: ${Number(user.hourlyRate).toFixed(2)}/hr</p> : null}
       </div>
 
       <DateTime />

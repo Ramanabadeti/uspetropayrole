@@ -150,13 +150,3 @@
 /* The day pay column is worked out from the Pay Rate box, not read from the
    database, so it needs to say so — otherwise a projected figure looks
    identical to a recorded one. */
-.pay-projection-note {
-  margin: 10px 0 0;
-  padding: 8px 12px;
-  border-left: 3px solid #4a7dbd;
-  background: #eef3fa;
-  border-radius: 0 4px 4px 0;
-  color: #33425a;
-  font-size: 13px;
-  line-height: 1.45;
-}
