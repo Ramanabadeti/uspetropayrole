@@ -124,28 +124,8 @@
 /* The rate override on the edit form is deliberately a separate, opt-in row:
    an edit that was only meant to fix a clock-out time must not reprice the
    day as a side effect. */
-.edit-rate-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #d0d0d0;
-  font-size: 14px;
-}
 
-.edit-rate-row label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
 
-.edit-rate-hint {
-  color: #666;
-  font-size: 13px;
-}
 
 /* The day pay column is worked out from the Pay Rate box, not read from the
    database, so it needs to say so — otherwise a projected figure looks

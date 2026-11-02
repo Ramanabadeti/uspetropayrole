@@ -58,8 +58,6 @@ const Admin = () => {
   const [editClockOutDate, setEditClockOutDate] = useState("");
   const [editClockOutTime, setEditClockOutTime] = useState("");
   const [editReason, setEditReason] = useState("");
-  const [overrideRate, setOverrideRate] = useState(false);
-  const [editHourlyRate, setEditHourlyRate] = useState("");
 
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
@@ -69,7 +67,6 @@ const Admin = () => {
     password: "",
     role: "employee",
     mailID: "",
-    hourlyRate: "",
     active: true,
   };
   const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
@@ -125,7 +122,6 @@ const Admin = () => {
       password: "",
       role: emp.role ?? "employee",
       mailID: emp.mailID ?? "",
-      hourlyRate: emp.hourlyRate ?? "",
       active: emp.active === undefined ? true : !!emp.active,
     });
   };
@@ -147,7 +143,6 @@ const Admin = () => {
 
     const payload = { ...employeeForm };
     if (!payload.password) delete payload.password;
-    if (payload.hourlyRate === "") payload.hourlyRate = 0;
 
     try {
       if (isEditing) {
@@ -211,7 +206,6 @@ const Admin = () => {
     setEditReason("");
     // Shows the rate this entry is actually priced at, which is not
     // necessarily the rate in the filter box above it.
-    setEditHourlyRate(String(entry.hourlyRate ?? ""));
     setOverrideRate(false);
     setIsEditOpen(true);
   };
@@ -223,7 +217,6 @@ const Admin = () => {
     setEditClockOutDate("");
     setEditClockOutTime("");
     setEditReason("");
-    setEditHourlyRate("");
     setOverrideRate(false);
     setIsEditOpen(false);
   };
@@ -231,11 +224,6 @@ const Admin = () => {
   const saveEditedEntry = async () => {
     if (!selectedEntry) return;
     setError("");
-
-    if (!editReason.trim()) {
-      setError("Please say why this entry is being corrected.");
-      return;
-    }
 
     // The rate is only sent when the admin deliberately ticked the override.
     // Previously this request always carried `payRate` from the filter box at
@@ -251,10 +239,6 @@ const Admin = () => {
       clockOutTime: editClockOutTime,
       editReason: editReason.trim(),
     };
-
-    if (overrideRate) {
-      patch.hourlyRate = Number(editHourlyRate || 0);
-    }
 
     try {
       await api.updateTimeEntry(selectedEntry.id, patch);
@@ -707,37 +691,11 @@ const Admin = () => {
 
             <input
               type="text"
-              placeholder="Reason for edit (required)"
+              placeholder="Reason for edit (optional)"
               value={editReason}
               onChange={(e) => setEditReason(e.target.value)}
               style={{ minWidth: "250px" }}
-              required
             />
-          </div>
-
-          <div className="edit-rate-row">
-            <label>
-              <input
-                type="checkbox"
-                checked={overrideRate}
-                onChange={(e) => setOverrideRate(e.target.checked)}
-              />
-              Also change this day&apos;s pay rate
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={editHourlyRate}
-              onChange={(e) => setEditHourlyRate(e.target.value)}
-              disabled={!overrideRate}
-              style={{ width: "90px" }}
-            />
-            <span className="edit-rate-hint">
-              {overrideRate
-                ? "This day will be repriced at the rate above."
-                : `Keeping $${Number(selectedEntry?.hourlyRate || 0).toFixed(2)}/hr.`}
-            </span>
           </div>
 
           <div style={{ marginTop: "10px" }}>
@@ -828,7 +786,6 @@ const Admin = () => {
                 <tr>
                   <th>NO</th>
                   <th>NAME</th>
-                  <th>RATE</th>
                   <th>ROLE</th>
                   <th>EMAIL</th>
                   <th>STATUS</th>
@@ -840,9 +797,6 @@ const Admin = () => {
                   <tr key={emp.id}>
                     <td>{emp.no}</td>
                     <td>{emp.name}</td>
-                    {/* This column used to print everyone's plaintext
-                        password onto the admin screen. */}
-                    <td>${Number(emp.hourlyRate || 0).toFixed(2)}</td>
                     <td>{emp.role}</td>
                     <td>{emp.mailID}</td>
                     <td>{emp.active ? "active" : "inactive"}</td>
@@ -892,18 +846,6 @@ const Admin = () => {
                 placeholder="Email"
                 value={employeeForm.mailID}
                 onChange={(e) => setEmployeeForm((f) => ({ ...f, mailID: e.target.value }))}
-              />
-              {/* The rate lives on the employee now. It was a hardcoded 15 in
-                  the employee screen, so nobody could ever be paid anything
-                  else without an admin editing each day by hand. */}
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="$/hr"
-                style={{ width: "80px" }}
-                value={employeeForm.hourlyRate}
-                onChange={(e) => setEmployeeForm((f) => ({ ...f, hourlyRate: e.target.value }))}
               />
               <label title="An inactive employee cannot sign in; their history is kept.">
                 <input
