@@ -221,14 +221,23 @@ describe("admin correction of an entry", () => {
     assert.equal(row.day_pay, 113.7);
   });
 
-  it("requires a reason", async () => {
+  it("saves a correction with no reason given", async () => {
+    // Correcting a late clock-in is routine, and making the admin justify
+    // every one of them in writing just means the box gets a full stop typed
+    // into it. The edit is still recorded either way.
     const id = await seedEntry626();
-    const res = await request(ctx.app)
+    await request(ctx.app)
       .put(`/api/time-entry/${id}`)
       .set("Cookie", adminCookie)
       .send({ clockOutTime: "5:00:00 AM" })
-      .expect(400);
-    assert.ok((res.body.details.map((d) => d.field)).includes("editReason"));
+      .expect(200);
+
+    const edit = await ctx.db.get(
+      "SELECT edit_reason AS editReason FROM admin_edits WHERE time_entry_id = ?",
+      [id]
+    );
+    assert.ok(edit, "the edit is still logged without a reason");
+    assert.ok(!edit.editReason, "and the reason is simply empty");
   });
 
   it("rejects a bad date or a negative rate instead of coercing it to zero", async () => {

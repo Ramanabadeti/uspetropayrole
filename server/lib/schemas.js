@@ -114,7 +114,7 @@ const updateTimeEntry = z.object({
   clockOutDate: dateString.optional(),
   clockOutTime: timeString.optional(),
   hourlyRate: money.optional(),
-  editReason: requiredText("Edit reason", 500),
+  editReason: trimmed(500).optional().default(""),
 });
 
 const createAdminNote = z.object({
