@@ -204,9 +204,6 @@ const Admin = () => {
     setEditClockOutDate(entry.clockOutDate || "");
     setEditClockOutTime(entry.clockOutTime || "");
     setEditReason("");
-    // Shows the rate this entry is actually priced at, which is not
-    // necessarily the rate in the filter box above it.
-    setOverrideRate(false);
     setIsEditOpen(true);
   };
 
@@ -217,7 +214,6 @@ const Admin = () => {
     setEditClockOutDate("");
     setEditClockOutTime("");
     setEditReason("");
-    setOverrideRate(false);
     setIsEditOpen(false);
   };
 
