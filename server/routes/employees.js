@@ -116,4 +116,73 @@ router.put(
   })
 );
 
+/**
+ * Removes someone who no longer works here.
+ *
+ * Their timesheets and notes are kept and keep their name — payroll history
+ * is a record of money owed and paid, and deleting it to tidy up a staff
+ * list would be the wrong trade. The rows are simply detached from the
+ * employee record, which is the same state the entries filed under long-gone
+ * names were already in.
+ */
+router.delete(
+  "/:id",
+  requireAdmin,
+  validate({ params: schemas.idParam }),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const db = await connectDB();
+
+    const existing = await db.get("SELECT id, name, role FROM employees WHERE id = ?", [id]);
+    if (!existing) throw new HttpError(404, "Employee not found");
+
+    if (Number(id) === Number(req.session.user.id)) {
+      throw new HttpError(409, "You cannot delete the account you are signed in as");
+    }
+
+    if (existing.role === "admin") {
+      const { admins } = await db.get(
+        "SELECT COUNT(*) AS admins FROM employees WHERE role = 'admin' AND active = 1"
+      );
+      if (admins <= 1) {
+        throw new HttpError(409, "That is the only admin left — there would be nobody to sign in");
+      }
+    }
+
+    const { entries } = await db.get(
+      "SELECT COUNT(*) AS entries FROM time_entries WHERE employee_id = ?",
+      [id]
+    );
+    const { notes } = await db.get(
+      "SELECT COUNT(*) AS notes FROM admin_notes WHERE employee_id = ?",
+      [id]
+    );
+
+    await db.exec("BEGIN");
+    try {
+      await db.run("UPDATE time_entries SET employee_id = NULL WHERE employee_id = ?", [id]);
+      await db.run("UPDATE admin_notes SET employee_id = NULL WHERE employee_id = ?", [id]);
+      await db.run("DELETE FROM active_sessions WHERE employee_id = ?", [id]);
+      await db.run("DELETE FROM employees WHERE id = ?", [id]);
+      await db.exec("COMMIT");
+    } catch (err) {
+      await db.exec("ROLLBACK");
+      throw err;
+    }
+
+    await req.sessionStore.destroyAllForEmployee(Number(id));
+
+    logger.warn(
+      { id: Number(id), name: existing.name, entries, notes, by: req.session.user.name },
+      "Employee deleted, history kept"
+    );
+
+    res.json({
+      message: `${existing.name} removed.`,
+      entriesKept: entries,
+      notesKept: notes,
+    });
+  })
+);
+
 module.exports = router;

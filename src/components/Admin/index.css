@@ -152,7 +152,7 @@
   font-size: 13px;
 }
 
-.admin-update-notice {
+.admin-notice {
   margin: 12px 0 0;
   padding: 10px 14px;
   border-radius: 4px;
@@ -171,4 +171,29 @@
 .session-overrun {
   color: #b3261e;
   font-weight: 600;
+}
+
+/* Icon-only actions in a table row: the row is already narrow, and a word
+   per action makes the column wider than the data in it. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  margin-left: 6px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  background-color: #e9eef3;
+  color: #44566a;
+  vertical-align: middle;
+}
+
+.icon-button:hover {
+  background-color: #d8e0e8;
+}
+
+.delete-employee:hover {
+  background-color: #fde8e8;
+  color: #b3261e;
 }

@@ -110,3 +110,53 @@ describe("the software update endpoint", () => {
     await request(ctx.app).post("/api/system/update").expect(401);
   });
 });
+
+/**
+ * Removing someone who has left must not take the record of what they were
+ * paid with them.
+ */
+describe("deleting an employee", () => {
+  it("keeps their timesheets, under their name", async () => {
+    const leaver = await ctx.addEmployee({ no: 3, name: "Mahesh", password: "maheshpass1" });
+    const leaverCookie = await signIn(request, ctx.app, "Mahesh", "maheshpass1");
+    await request(ctx.app).post("/clock-in").set("Cookie", leaverCookie).send({}).expect(200);
+    await request(ctx.app).post("/clock-out").set("Cookie", leaverCookie).send({}).expect(200);
+
+    const res = await request(ctx.app)
+      .delete(`/api/employees/${leaver.id}`)
+      .set("Cookie", adminCookie)
+      .expect(200);
+    assert.equal(res.body.entriesKept, 1);
+
+    const gone = await ctx.db.get("SELECT id FROM employees WHERE id = ?", [leaver.id]);
+    assert.equal(gone, undefined);
+
+    const entry = await ctx.db.get(
+      "SELECT emp_name, employee_id FROM time_entries WHERE emp_name = 'Mahesh'"
+    );
+    assert.ok(entry, "the timesheet entry is still there");
+    assert.equal(entry.employee_id, null, "but detached from the deleted record");
+
+    // And their login no longer works.
+    await request(ctx.app)
+      .post("/api/auth/login")
+      .send({ username: "Mahesh", password: "maheshpass1" })
+      .expect(401);
+  });
+
+  it("refuses to delete the signed-in account or the last admin", async () => {
+    const me = await ctx.db.get("SELECT id FROM employees WHERE name = 'admin'");
+    const res = await request(ctx.app)
+      .delete(`/api/employees/${me.id}`)
+      .set("Cookie", adminCookie)
+      .expect(409);
+    assert.match(String(res.body.error), /signed in as|only admin/i);
+  });
+
+  it("is admin-only", async () => {
+    await request(ctx.app)
+      .delete(`/api/employees/${employee.id}`)
+      .set("Cookie", employeeCookie)
+      .expect(403);
+  });
+});

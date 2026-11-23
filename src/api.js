@@ -86,6 +86,7 @@ export const api = {
     request("/api/employees", { method: "POST", body: employee }),
   updateEmployee: (id, employee) =>
     request(`/api/employees/${id}`, { method: "PUT", body: employee }),
+  deleteEmployee: (id) => request(`/api/employees/${id}`, { method: "DELETE" }),
 
   // clock
   clockIn: (empName) => request("/clock-in", { method: "POST", body: { empName } }),

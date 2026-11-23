@@ -65,7 +65,7 @@ const Admin = () => {
   const [sessionEdits, setSessionEdits] = useState({});
   const [version, setVersion] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const [updateNotice, setUpdateNotice] = useState("");
+  const [adminNotice, setAdminNotice] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const emptyEmployeeForm = {
     no: "",
@@ -380,6 +380,31 @@ const Admin = () => {
     window.open(mailtoURL, "_blank");
   };
 
+  const deleteEmployee = async (emp) => {
+    if (
+      !window.confirm(
+        `Remove ${emp.name}?\n\nTheir timesheets and payment notes are kept ` +
+          "and still show their name — only the employee record and their " +
+          "login are removed. To stop someone signing in without removing " +
+          "them, untick Active instead."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await api.deleteEmployee(emp.id);
+      await loadEmployees();
+      setAdminNotice(
+        res.entriesKept
+          ? `${res.message} ${res.entriesKept} timesheet entries kept under their name.`
+          : res.message
+      );
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
   const loadActiveSessions = useCallback(async () => {
     try {
       const rows = await api.activeSessions();
@@ -436,14 +461,14 @@ const Admin = () => {
       return;
     }
     setUpdating(true);
-    setUpdateNotice("");
+    setAdminNotice("");
     try {
       const res = await api.runSoftwareUpdate();
-      setUpdateNotice(res.message);
+      setAdminNotice(res.message);
     } catch (err) {
       // The server exits a second after replying, so a dropped connection
       // here usually means the update did start.
-      setUpdateNotice(
+      setAdminNotice(
         "The update was started. If this page stops responding, that is the " +
           "server restarting — wait a minute and reload."
       );
@@ -879,6 +904,31 @@ const Admin = () => {
                     <td>{emp.active ? "active" : "inactive"}</td>
                     <td>
                       <button onClick={() => startEditEmployee(emp)}>Edit</button>
+                      <button
+                        className="icon-button delete-employee"
+                        onClick={() => deleteEmployee(emp)}
+                        title={`Remove ${emp.name}`}
+                        aria-label={`Remove ${emp.name}`}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -954,7 +1004,7 @@ const Admin = () => {
               )}
             </div>
 
-            {updateNotice && <p className="admin-update-notice">{updateNotice}</p>}
+            {adminNotice && <p className="admin-notice">{adminNotice}</p>}
 
             {showActiveSessions && (
               <div style={{ marginTop: "20px" }}>
