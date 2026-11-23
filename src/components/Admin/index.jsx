@@ -938,18 +938,31 @@ const Admin = () => {
               aria-modal="true"
               aria-labelledby="administration-code-title"
             >
-              <h3 id="administration-code-title">Administration page</h3>
-              <p className="modal-text">
-                Enter the administration code to open staff records, active
-                sessions and the software update.
-              </p>
+              <div className="modal-lock" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="22"
+                  height="22"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  focusable="false"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+
+              <h3 id="administration-code-title">Administration</h3>
+              <p className="modal-text">Enter your code to continue</p>
 
               <input
                 id="administration-code"
                 type="password"
                 inputMode="numeric"
                 autoComplete="off"
-                placeholder="Code"
                 autoFocus
                 value={codeEntry}
                 onChange={(e) => setCodeEntry(e.target.value)}
@@ -957,12 +970,12 @@ const Admin = () => {
 
               {codeError && <p className="modal-error">{codeError}</p>}
 
-              <div className="modal-actions">
-                <button type="button" className="modal-secondary" onClick={closeCodePrompt}>
-                  Cancel
-                </button>
-                <button type="submit">Enter</button>
-              </div>
+              <button type="submit" className="modal-primary">
+                Continue
+              </button>
+              <button type="button" className="modal-quiet" onClick={closeCodePrompt}>
+                Cancel
+              </button>
             </form>
           </div>
         )}
