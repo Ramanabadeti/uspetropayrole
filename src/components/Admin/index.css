@@ -197,3 +197,33 @@
   background-color: #fde8e8;
   color: #b3261e;
 }
+
+.admin-code {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #f6f8fa;
+  border: 1px solid #dde3e9;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.admin-code input {
+  width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  letter-spacing: 4px;
+}
+
+.admin-code button {
+  margin: 0;
+}
+
+.admin-code-error {
+  color: #b3261e;
+}

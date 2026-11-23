@@ -7,6 +7,12 @@ import api, { ApiError } from "../../api";
 import { useAuth } from "../../auth";
 import "./index.css";
 
+// A second barrier in front of staff records and the maintenance buttons, so
+// someone leaning over the counter while the admin is signed in cannot open
+// them. It is a speed bump, not a secret: the page is already behind the
+// admin login, and anyone reading the built JavaScript can find this.
+const ADMINISTRATION_CODE = "2931";
+
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -60,6 +66,9 @@ const Admin = () => {
   const [editReason, setEditReason] = useState("");
 
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
+  const [codeEntry, setCodeEntry] = useState("");
+  const [askingForCode, setAskingForCode] = useState(false);
+  const [codeError, setCodeError] = useState("");
   const [showActiveSessions, setShowActiveSessions] = useState(false);
   const [activeSessions, setActiveSessions] = useState([]);
   const [sessionEdits, setSessionEdits] = useState({});
@@ -378,6 +387,34 @@ const Admin = () => {
 
     const mailtoURL = `https://mail.google.com/mail/?view=cm&fs=1&to=${managerEmail},${employeeEmail}&su=${subject}&body=${body}`;
     window.open(mailtoURL, "_blank");
+  };
+
+  const toggleAdministration = () => {
+    if (showEmployeeDetails) {
+      // Closing it re-locks: reopening asks again.
+      setShowEmployeeDetails(false);
+      setAskingForCode(false);
+      setCodeEntry("");
+      setCodeError("");
+      return;
+    }
+    setAskingForCode(true);
+    setCodeEntry("");
+    setCodeError("");
+  };
+
+  const submitCode = (event) => {
+    event.preventDefault();
+    if (codeEntry.trim() !== ADMINISTRATION_CODE) {
+      setCodeError("That code is not right.");
+      setCodeEntry("");
+      return;
+    }
+    setAskingForCode(false);
+    setCodeEntry("");
+    setCodeError("");
+    setShowEmployeeDetails(true);
+    startAddEmployee();
   };
 
   const deleteEmployee = async (emp) => {
@@ -865,14 +902,36 @@ const Admin = () => {
       </div>
 
       <div style={{ marginTop: "40px" }}>
-        <button
-          onClick={() => {
-            setShowEmployeeDetails((prev) => !prev);
-            if (!showEmployeeDetails) startAddEmployee();
-          }}
-        >
-          {showEmployeeDetails ? "Hide" : "View"} Employee Details
+        <button onClick={toggleAdministration}>
+          {showEmployeeDetails ? "Hide" : "View"} Administration Page
         </button>
+
+        {askingForCode && (
+          <form className="admin-code" onSubmit={submitCode}>
+            <label htmlFor="administration-code">Administration code</label>
+            <input
+              id="administration-code"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              autoFocus
+              value={codeEntry}
+              onChange={(e) => setCodeEntry(e.target.value)}
+            />
+            <button type="submit">Unlock</button>
+            <button
+              type="button"
+              onClick={() => {
+                setAskingForCode(false);
+                setCodeEntry("");
+                setCodeError("");
+              }}
+            >
+              Cancel
+            </button>
+            {codeError && <span className="admin-code-error">{codeError}</span>}
+          </form>
+        )}
 
         {showEmployeeDetails && (
           <div
