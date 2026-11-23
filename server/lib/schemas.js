@@ -117,6 +117,11 @@ const updateTimeEntry = z.object({
   editReason: trimmed(500).optional().default(""),
 });
 
+const updateActiveSession = z.object({
+  clockInDate: dateString,
+  clockInTime: timeString,
+});
+
 const createAdminNote = z.object({
   empName: requiredText("Employee name", 100),
   noteDate: dateString,
@@ -142,6 +147,7 @@ module.exports = {
   changePassword,
   clockIn,
   clockOut,
+  updateActiveSession,
   createAdminNote,
   createEmployee,
   dateString,

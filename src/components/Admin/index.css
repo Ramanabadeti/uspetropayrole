@@ -130,3 +130,45 @@
 /* The day pay column is worked out from the Pay Rate box, not read from the
    database, so it needs to say so — otherwise a projected figure looks
    identical to a recorded one. */
+
+/* Maintenance controls, kept at the foot of the employee section rather
+   than beside the day-to-day buttons above. */
+.admin-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px dashed #d0d0d0;
+}
+
+.admin-tools button {
+  margin: 0;
+}
+
+.admin-version {
+  color: #666;
+  font-size: 13px;
+}
+
+.admin-update-notice {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #8a5a00;
+  background: #fff4e0;
+  border: 1px solid #f0cf96;
+}
+
+.admin-empty {
+  color: #666;
+  font-size: 14px;
+}
+
+/* A shift past the maximum is a forgotten clock-out, not a long day. */
+.session-overrun {
+  color: #b3261e;
+  font-weight: 600;
+}

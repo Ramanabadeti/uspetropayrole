@@ -40,6 +40,7 @@ function EmployeeHome({ empName }) {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [warning, setWarning] = useState("");
 
   const handleError = useCallback(
     (err) => {
@@ -91,6 +92,7 @@ function EmployeeHome({ empName }) {
     setBusy(true);
     setError("");
     setNotice("");
+    setWarning("");
     try {
       await api.clockIn(empName);
       await loadActive();
@@ -107,11 +109,19 @@ function EmployeeHome({ empName }) {
     setBusy(true);
     setError("");
     setNotice("");
+    setWarning("");
     try {
-      const { entry } = await api.clockOut(empName);
+      const { entry, warning } = await api.clockOut(empName);
       setActive(null);
       await loadEntries();
-      setNotice(`Clocked out — ${entry.totalHours} worked today.`);
+      if (warning) {
+        // A forgotten clock-out yesterday. The punch went through, but this
+        // needs to stay on screen until it is read, so it does not share the
+        // ordinary "nice work today" line.
+        setWarning(warning);
+      } else {
+        setNotice(`Clocked out — ${entry.totalHours} worked today.`);
+      }
     } catch (err) {
       handleError(err);
     } finally {
@@ -151,6 +161,11 @@ function EmployeeHome({ empName }) {
 
       {error && <p className="employee-error" role="alert">{error}</p>}
       {notice && <p className="employee-notice">{notice}</p>}
+      {warning && (
+        <p className="employee-warning" role="alert">
+          {warning}
+        </p>
+      )}
 
       {active ? (
         <button

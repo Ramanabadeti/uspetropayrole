@@ -17,6 +17,7 @@ const clockRoutes = require("./routes/clock");
 const timeEntryRoutes = require("./routes/timeEntries");
 const adminNoteRoutes = require("./routes/adminNotes");
 const statsRoutes = require("./routes/stats");
+const systemRoutes = require("./routes/system");
 
 const { CORS_ORIGINS, IS_PRODUCTION, SESSION_TTL_MS, SESSION_SECRET } = require("../config");
 
@@ -150,6 +151,7 @@ function createApp({ serveFrontend = true } = {}) {
   app.use("/api", timeEntryRoutes);
   app.use("/api", adminNoteRoutes);
   app.use("/api", statsRoutes);
+  app.use("/api", systemRoutes);
   app.use("/api", clockRoutes);
 
   // The old unprefixed clock endpoints, so an older built frontend on the

@@ -183,7 +183,13 @@ function calculateWorkData({
  * shapes the pickers produce rather than the locale strings the browser used
  * to send.
  */
-function calculateFromInstants({ start, end, hourlyRate, maxShiftHours = 24 }) {
+function calculateFromInstants({
+  start,
+  end,
+  hourlyRate,
+  maxShiftHours = 24,
+  allowOverlong = false,
+}) {
   if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
     throw new PayrollError("Clock-in time is unreadable");
   }
@@ -195,17 +201,25 @@ function calculateFromInstants({ start, end, hourlyRate, maxShiftHours = 24 }) {
   const dateOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const timeOf = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 
+  const hours = (end.getTime() - start.getTime()) / MS_PER_HOUR;
+  const exceedsMax = Boolean(maxShiftHours) && hours > maxShiftHours;
+
   const computed = calculateWorkData({
     clockInDate: dateOf(start),
     clockInTime: timeOf(start),
     clockOutDate: dateOf(end),
     clockOutTime: timeOf(end),
     hourlyRate,
-    maxShiftHours,
+    // Refusing the clock-out of someone who forgot to clock out yesterday
+    // leaves them unable to clock out AND unable to clock in, with no screen
+    // anywhere that lets them fix it themselves. The punch is recorded and
+    // flagged for the employer instead.
+    maxShiftHours: allowOverlong ? 0 : maxShiftHours,
   });
 
   return {
     ...computed,
+    exceedsMax,
     clockInDate: dateOf(start),
     clockInTime: timeOf(start),
     clockOutDate: dateOf(end),

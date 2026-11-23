@@ -6,7 +6,7 @@ const schemas = require("../lib/schemas");
 const employeeRepo = require("../lib/employees");
 const payroll = require("../lib/payroll");
 const { asyncHandler, HttpError } = require("../middleware/errors");
-const { requireAuth, requireSelfOrAdmin } = require("../middleware/auth");
+const { requireAdmin, requireAuth, requireSelfOrAdmin } = require("../middleware/auth");
 const { MAX_SHIFT_HOURS } = require("../../config");
 
 const router = express.Router();
@@ -112,6 +112,94 @@ router.get(
 );
 
 /**
+ * Everyone currently clocked in.
+ *
+ * Until now a running shift was only visible to the person in it, so an
+ * employee who clocked in at the wrong time — or forgot to clock out — could
+ * not be fixed by anyone until the shift closed and became a time entry.
+ */
+router.get(
+  "/active-sessions",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const db = await connectDB();
+    const rows = await db.all(
+      `SELECT a.id, a.emp_name AS empName, a.employee_id AS employeeId,
+              a.clock_in_full_time AS clockInFullTime,
+              a.in_date AS inDate, a.in_time AS inTime,
+              a.month, a.year
+       FROM active_sessions a
+       WHERE a.is_clock_in = 1
+       ORDER BY a.clock_in_full_time ASC`
+    );
+
+    const now = Date.now();
+    res.json(
+      rows.map((row) => {
+        const started = new Date(row.clockInFullTime);
+        const hours = Number.isNaN(started.getTime())
+          ? null
+          : payroll.roundHours((now - started.getTime()) / payroll.MS_PER_HOUR);
+        return {
+          ...row,
+          hoursSoFar: hours,
+          // What the admin actually needs to spot: this one is not a shift,
+          // it is a forgotten clock-out.
+          overMaxShift: hours !== null && hours > MAX_SHIFT_HOURS,
+        };
+      })
+    );
+  })
+);
+
+/**
+ * Corrects the start time of a shift that is still running.
+ */
+router.put(
+  "/active-session/:id",
+  requireAuth,
+  requireAdmin,
+  validate({ params: schemas.idParam, body: schemas.updateActiveSession }),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { clockInDate, clockInTime } = req.body;
+
+    const db = await connectDB();
+    const existing = await db.get("SELECT * FROM active_sessions WHERE id = ?", [id]);
+    if (!existing) throw new HttpError(404, "No active session with that id");
+
+    const start = payroll.parseLocalDateTime(clockInDate, clockInTime);
+    if (!start) throw new HttpError(400, "Could not read that date and time");
+    if (start.getTime() > Date.now()) {
+      throw new HttpError(400, "A shift cannot start in the future");
+    }
+
+    await db.run(
+      `UPDATE active_sessions
+       SET clock_in_full_time = ?, in_date = ?, in_time = ?, month = ?, year = ?,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        start.toISOString(),
+        clockInDate,
+        clockInTime,
+        String(start.getMonth() + 1),
+        String(start.getFullYear()),
+        id,
+      ]
+    );
+
+    logger.info(
+      { id: Number(id), empName: existing.emp_name, by: req.session.user.name },
+      "Active session start time corrected"
+    );
+
+    res.json({ status: "updated" });
+  })
+);
+
+/**
  * Ends a shift and writes the time entry.
  *
  * This replaces POST /clock-data, which took hours, rate and dollars from the
@@ -145,6 +233,12 @@ router.post(
       end,
       hourlyRate,
       maxShiftHours: MAX_SHIFT_HOURS,
+      // Always let the punch through. A shift over the maximum means someone
+      // forgot to clock out, and refusing it used to strand them: they could
+      // not clock out, so they could not clock in the next morning either,
+      // and the message told them to correct a timesheet they have no access
+      // to. The entry is saved for the employer to fix.
+      allowOverlong: true,
     });
 
     const result = await db.run(
@@ -154,7 +248,7 @@ router.post(
          clock_in_full_time, clock_out_full_time,
          total_hours, decimal_hours, hourly_rate, day_pay,
          month, year, status, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', CURRENT_TIMESTAMP)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [
         employee.name,
         employee.id,
@@ -172,17 +266,38 @@ router.post(
         // crosses midnight on the 1st does not land in the wrong month.
         String(start.getMonth() + 1),
         String(start.getFullYear()),
+        computed.exceedsMax ? "needs_review" : "completed",
       ]
     );
 
     await db.run("DELETE FROM active_sessions WHERE employee_id = ?", [employee.id]);
 
     logger.info(
-      { name: employee.name, hours: computed.decimalHours, pay: computed.dayPay },
+      {
+        name: employee.name,
+        hours: computed.decimalHours,
+        pay: computed.dayPay,
+        needsReview: computed.exceedsMax,
+      },
       "Clocked out"
     );
 
-    res.json({ status: "clock data saved", id: result.lastID, entry: computed });
+    // Said to the employee, so it has to tell them what to do rather than
+    // what went wrong: they are the one who has to go and ask.
+    const warning = computed.exceedsMax
+      ? `This shift ran ${computed.decimalHours} hours, over the ` +
+        `${MAX_SHIFT_HOURS}-hour limit — it looks like yesterday's clock-out was ` +
+        "missed. You are clocked out now and can clock in again, but tell your " +
+        "employer so they can correct the times on your timesheet."
+      : null;
+
+    res.json({
+      status: "clock data saved",
+      id: result.lastID,
+      entry: computed,
+      needsReview: computed.exceedsMax,
+      warning,
+    });
   })
 );
 

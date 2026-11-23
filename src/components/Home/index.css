@@ -254,7 +254,8 @@ body {
 
 
 .employee-error,
-.employee-notice {
+.employee-notice,
+.employee-warning {
   max-width: 480px;
   margin: 10px auto;
   padding: 8px 12px;
@@ -272,6 +273,15 @@ body {
   color: #1b5e20;
   background: #e8f5e9;
   border: 1px solid #c3e6c8;
+}
+
+/* A forgotten clock-out is not an error — the punch worked — but the
+   employee has to act on it, so it cannot look like the green "all done"
+   line either. */
+.employee-warning {
+  color: #8a5a00;
+  background: #fff4e0;
+  border: 1px solid #f0cf96;
 }
 
 @media (max-width: 600px) {

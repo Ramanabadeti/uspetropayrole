@@ -60,6 +60,12 @@ const Admin = () => {
   const [editReason, setEditReason] = useState("");
 
   const [showEmployeeDetails, setShowEmployeeDetails] = useState(false);
+  const [showActiveSessions, setShowActiveSessions] = useState(false);
+  const [activeSessions, setActiveSessions] = useState([]);
+  const [sessionEdits, setSessionEdits] = useState({});
+  const [version, setVersion] = useState(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateNotice, setUpdateNotice] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const emptyEmployeeForm = {
     no: "",
@@ -101,6 +107,11 @@ const Admin = () => {
       .emails()
       .then(setEmailList)
       .catch(() => setEmailList([]));
+
+    api
+      .systemVersion()
+      .then(setVersion)
+      .catch(() => setVersion(null));
   }, []);
 
   useEffect(() => {
@@ -367,6 +378,76 @@ const Admin = () => {
 
     const mailtoURL = `https://mail.google.com/mail/?view=cm&fs=1&to=${managerEmail},${employeeEmail}&su=${subject}&body=${body}`;
     window.open(mailtoURL, "_blank");
+  };
+
+  const loadActiveSessions = useCallback(async () => {
+    try {
+      const rows = await api.activeSessions();
+      setActiveSessions(rows);
+      // Seed each row's editable fields from what is stored, so the admin
+      // corrects a time rather than retyping one from nothing.
+      setSessionEdits(
+        Object.fromEntries(
+          rows.map((row) => [row.id, { clockInDate: row.inDate || "", clockInTime: row.inTime || "" }])
+        )
+      );
+    } catch (err) {
+      handleError(err);
+    }
+  }, [handleError]);
+
+  const toggleActiveSessions = async () => {
+    const next = !showActiveSessions;
+    setShowActiveSessions(next);
+    if (next) await loadActiveSessions();
+  };
+
+  const saveActiveSession = async (id) => {
+    const patch = sessionEdits[id];
+    if (!patch?.clockInDate || !patch?.clockInTime) {
+      setError("Both the date and the time are needed to correct a shift.");
+      return;
+    }
+    try {
+      await api.updateActiveSession(id, patch);
+      await loadActiveSessions();
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const endActiveSession = async (empName) => {
+    try {
+      await api.clearActiveSession(empName);
+      await loadActiveSessions();
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const runSoftwareUpdate = async () => {
+    if (
+      !window.confirm(
+        "Update the software now?\n\nThe app will close and reopen by itself " +
+          "while it downloads and rebuilds. This takes a few minutes, and " +
+          "nobody can clock in or out until it is back."
+      )
+    ) {
+      return;
+    }
+    setUpdating(true);
+    setUpdateNotice("");
+    try {
+      const res = await api.runSoftwareUpdate();
+      setUpdateNotice(res.message);
+    } catch (err) {
+      // The server exits a second after replying, so a dropped connection
+      // here usually means the update did start.
+      setUpdateNotice(
+        "The update was started. If this page stops responding, that is the " +
+          "server restarting — wait a minute and reload."
+      );
+    }
   };
 
   const handleLogout = async () => {
@@ -858,6 +939,92 @@ const Admin = () => {
                 <button onClick={startAddEmployee}>Cancel</button>
               )}
             </div>
+
+            <div className="admin-tools">
+              <button onClick={toggleActiveSessions}>
+                {showActiveSessions ? "Hide" : "Show"} Active Sessions
+              </button>
+              <button onClick={runSoftwareUpdate} disabled={updating}>
+                {updating ? "Updating…" : "Update Software"}
+              </button>
+              {version && (
+                <span className="admin-version">
+                  Installed: {version.version?.commit} · {version.version?.date}
+                </span>
+              )}
+            </div>
+
+            {updateNotice && <p className="admin-update-notice">{updateNotice}</p>}
+
+            {showActiveSessions && (
+              <div style={{ marginTop: "20px" }}>
+                <h3>Active Sessions</h3>
+                {activeSessions.length === 0 ? (
+                  <p className="admin-empty">Nobody is clocked in right now.</p>
+                ) : (
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>NAME</th>
+                        <th>CLOCKED IN</th>
+                        <th>HOURS SO FAR</th>
+                        <th>CORRECT THE START</th>
+                        <th>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeSessions.map((session) => (
+                        <tr key={session.id}>
+                          <td>{session.empName}</td>
+                          <td>
+                            {session.inDate} {session.inTime}
+                          </td>
+                          <td className={session.overMaxShift ? "session-overrun" : undefined}>
+                            {session.hoursSoFar}
+                            {session.overMaxShift ? " — forgot to clock out" : ""}
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              value={sessionEdits[session.id]?.clockInDate || ""}
+                              onChange={(e) =>
+                                setSessionEdits((prev) => ({
+                                  ...prev,
+                                  [session.id]: {
+                                    ...prev[session.id],
+                                    clockInDate: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                            <input
+                              type="time"
+                              step="1"
+                              value={sessionEdits[session.id]?.clockInTime || ""}
+                              onChange={(e) =>
+                                setSessionEdits((prev) => ({
+                                  ...prev,
+                                  [session.id]: {
+                                    ...prev[session.id],
+                                    clockInTime: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </td>
+                          <td>
+                            <button onClick={() => saveActiveSession(session.id)}>Save</button>
+                            <button onClick={() => endActiveSession(session.empName)}>
+                              Clear
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

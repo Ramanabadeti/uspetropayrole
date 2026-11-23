@@ -58,6 +58,36 @@ describe("the clock", () => {
     assert.ok((out.body.entry.dayPay) < (15));
   });
 
+  it("lets someone who forgot to clock out yesterday clock out today", async () => {
+    // Refusing this punch stranded the employee: they could not clock out,
+    // so they could not clock in for today either, and the only fix was a
+    // screen they cannot reach.
+    await request(ctx.app).post("/clock-in").set("Cookie", employeeCookie).send({}).expect(200);
+
+    const thirtyHoursAgo = new Date(Date.now() - 30 * 60 * 60 * 1000);
+    await ctx.db.run(
+      "UPDATE active_sessions SET clock_in_full_time = ? WHERE employee_id = ?",
+      [thirtyHoursAgo.toISOString(), employee.id]
+    );
+
+    const out = await request(ctx.app)
+      .post("/clock-out")
+      .set("Cookie", employeeCookie)
+      .send({})
+      .expect(200);
+
+    assert.equal(out.body.needsReview, true);
+    assert.match(String(out.body.warning), /tell your employer/i);
+
+    const row = await ctx.db.get("SELECT * FROM time_entries WHERE id = ?", [out.body.id]);
+    assert.equal(row.status, "needs_review");
+    assert.ok(row.decimal_hours > 24, "the real hours are recorded, not a trimmed figure");
+
+    // And the point of the whole thing: they can clock in again.
+    await request(ctx.app).post("/clock-in").set("Cookie", employeeCookie).send({}).expect(200);
+    await request(ctx.app).post("/clock-out").set("Cookie", employeeCookie).send({}).expect(200);
+  });
+
   it("refuses a clock-out with no shift open", async () => {
     const res = await request(ctx.app)
       .post("/clock-out")

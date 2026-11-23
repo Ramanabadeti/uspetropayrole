@@ -93,6 +93,13 @@ export const api = {
   activeSession: (empName) => request(`/clock-in/${encodeURIComponent(empName)}`),
   clearActiveSession: (empName) =>
     request(`/clock-in/${encodeURIComponent(empName)}`, { method: "DELETE" }),
+  activeSessions: () => request("/api/active-sessions"),
+  updateActiveSession: (id, patch) =>
+    request(`/api/active-session/${id}`, { method: "PUT", body: patch }),
+
+  // system
+  systemVersion: () => request("/api/system/version"),
+  runSoftwareUpdate: () => request("/api/system/update", { method: "POST" }),
 
   // time entries
   employeeLogs: (params) => request(`/api/employee-logs${query(params)}`),
