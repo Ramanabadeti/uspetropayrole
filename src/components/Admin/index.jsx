@@ -403,6 +403,21 @@ const Admin = () => {
     setCodeError("");
   };
 
+  useEffect(() => {
+    if (!askingForCode) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeCodePrompt();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [askingForCode]);
+
+  const closeCodePrompt = () => {
+    setAskingForCode(false);
+    setCodeEntry("");
+    setCodeError("");
+  };
+
   const submitCode = (event) => {
     event.preventDefault();
     if (codeEntry.trim() !== ADMINISTRATION_CODE) {
@@ -907,30 +922,49 @@ const Admin = () => {
         </button>
 
         {askingForCode && (
-          <form className="admin-code" onSubmit={submitCode}>
-            <label htmlFor="administration-code">Administration code</label>
-            <input
-              id="administration-code"
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              autoFocus
-              value={codeEntry}
-              onChange={(e) => setCodeEntry(e.target.value)}
-            />
-            <button type="submit">Unlock</button>
-            <button
-              type="button"
-              onClick={() => {
-                setAskingForCode(false);
-                setCodeEntry("");
-                setCodeError("");
-              }}
+          // Centred over the page rather than inline: at the foot of a long
+          // admin page the old box was below the fold and easy to miss, so
+          // the button looked like it had done nothing.
+          <div
+            className="modal-backdrop"
+            onClick={closeCodePrompt}
+            role="presentation"
+          >
+            <form
+              className="modal-card"
+              onSubmit={submitCode}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="administration-code-title"
             >
-              Cancel
-            </button>
-            {codeError && <span className="admin-code-error">{codeError}</span>}
-          </form>
+              <h3 id="administration-code-title">Administration page</h3>
+              <p className="modal-text">
+                Enter the administration code to open staff records, active
+                sessions and the software update.
+              </p>
+
+              <input
+                id="administration-code"
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="Code"
+                autoFocus
+                value={codeEntry}
+                onChange={(e) => setCodeEntry(e.target.value)}
+              />
+
+              {codeError && <p className="modal-error">{codeError}</p>}
+
+              <div className="modal-actions">
+                <button type="button" className="modal-secondary" onClick={closeCodePrompt}>
+                  Cancel
+                </button>
+                <button type="submit">Enter</button>
+              </div>
+            </form>
+          </div>
         )}
 
         {showEmployeeDetails && (
